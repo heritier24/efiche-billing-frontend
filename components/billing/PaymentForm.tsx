@@ -7,12 +7,12 @@
 "use client";
 
 import { useState } from "react";
-import { Invoice, Insurance, PaymentMethod, PaymentFormData } from "@/lib/types";
+import { Invoice, Insurance, PaymentMethod, PaymentFormData, PaymentRequest } from "@/lib/types";
 
 interface PaymentFormProps {
   invoice: Invoice;
   insurances: Insurance[];
-  onSubmit: (data: PaymentFormData) => void;
+  onSubmit: (data: PaymentRequest) => void;
   isLoading: boolean;
   isWaitingForConfirmation: boolean;
   successMessage?: string;
@@ -32,6 +32,8 @@ export default function PaymentForm({
     amount: invoice.remainingBalance,
     method: "cash",
     insuranceId: undefined,
+    phoneNumber: "",
+    notes: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,7 +56,25 @@ export default function PaymentForm({
       return;
     }
 
-    onSubmit(formData);
+    if (formData.method === "mobile_money" && !formData.phoneNumber) {
+      alert("Please enter a phone number for mobile money payment");
+      return;
+    }
+
+    if (formData.method === "mobile_money" && formData.phoneNumber && !validatePhoneNumber(formData.phoneNumber)) {
+      alert("Please enter a valid Rwanda phone number (e.g., +250788123456)");
+      return;
+    }
+
+    // Transform to backend format
+    const backendPaymentData = {
+      amount: formData.amount.toFixed(2), // Backend expects string with 2 decimal places
+      method: formData.method,
+      phone_number: formData.method === 'mobile_money' ? formData.phoneNumber : undefined,
+      notes: formData.notes || `Payment for invoice ${invoice.id}`,
+    };
+
+    onSubmit(backendPaymentData);
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,11 +88,25 @@ export default function PaymentForm({
       ...prev,
       method,
       insuranceId: method === "insurance" ? prev.insuranceId : undefined,
+      phoneNumber: method === "mobile_money" ? prev.phoneNumber : "",
     }));
   };
 
   const handleInsuranceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, insuranceId: e.target.value }));
+  };
+
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }));
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, notes: e.target.value }));
+  };
+
+  // Validate Rwanda phone number format
+  const validatePhoneNumber = (phone: string): boolean => {
+    return /^\+2507\d{8}$/.test(phone);
   };
 
   if (invoice.status === "paid") {
@@ -165,6 +199,31 @@ export default function PaymentForm({
           </select>
         </div>
 
+        {/* Phone Number (for Mobile Money) */}
+        {formData.method === "mobile_money" && (
+          <div>
+            <label
+              htmlFor="phoneNumber"
+              className="block text-sm font-semibold text-neutral-900 mb-2"
+            >
+              Phone Number *
+            </label>
+            <input
+              id="phoneNumber"
+              type="tel"
+              placeholder="+250788123456"
+              value={formData.phoneNumber || ""}
+              onChange={handlePhoneNumberChange}
+              disabled={isLoading || isWaitingForConfirmation}
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
+              required
+            />
+            <p className="text-xs text-neutral-500 mt-2">
+              Format: +2507xxxxxxxx (Rwanda mobile numbers only)
+            </p>
+          </div>
+        )}
+
         {/* Insurance Selection (conditional) */}
         {formData.method === "insurance" && (
           <div>
@@ -191,6 +250,25 @@ export default function PaymentForm({
             </select>
           </div>
         )}
+
+        {/* Notes (Optional) */}
+        <div>
+          <label
+            htmlFor="notes"
+            className="block text-sm font-semibold text-neutral-900 mb-2"
+          >
+            Notes (Optional)
+          </label>
+          <textarea
+            id="notes"
+            rows={3}
+            placeholder="Add any notes about this payment..."
+            value={formData.notes || ""}
+            onChange={handleNotesChange}
+            disabled={isLoading || isWaitingForConfirmation}
+            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900 resize-none"
+          />
+        </div>
 
         {/* Submit Button */}
         <button
