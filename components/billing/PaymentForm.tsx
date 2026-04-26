@@ -1,6 +1,7 @@
 /**
  * Payment Form Component
  * Handles payment submission with method selection
+ * Estate Rwanda Design - 60-30-10 Color Scheme
  */
 
 "use client";
@@ -36,7 +37,6 @@ export default function PaymentForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.amount || formData.amount <= 0) {
       alert("Please enter a valid amount");
       return;
@@ -75,12 +75,11 @@ export default function PaymentForm({
     setFormData((prev) => ({ ...prev, insuranceId: e.target.value }));
   };
 
-  // If invoice is already fully paid, show success message
   if (invoice.status === "paid") {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800 font-medium">
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-6">
+        <div className="bg-success-50 border border-success-300 rounded-lg p-4">
+          <p className="text-success-700 font-semibold">
             ✓ Invoice paid in full. Thank you!
           </p>
         </div>
@@ -89,41 +88,41 @@ export default function PaymentForm({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Payment</h2>
+    <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-6">
+      <h2 className="text-xl font-semibold text-neutral-900 mb-6">Process Payment</h2>
 
       {/* Status Messages */}
       {isWaitingForConfirmation && (
-        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-blue-800 font-medium">
+        <div className="mb-4 bg-info-50 border border-primary-300 rounded-lg p-4">
+          <p className="text-primary-700 font-semibold">
             ⏳ Waiting for mobile money confirmation...
           </p>
-          <p className="text-blue-700 text-sm mt-1">
+          <p className="text-primary-600 text-sm mt-1">
             This may take a few seconds.
           </p>
         </div>
       )}
 
       {successMessage && (
-        <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-green-800 font-medium">✓ {successMessage}</p>
+        <div className="mb-4 bg-success-50 border border-success-300 rounded-lg p-4">
+          <p className="text-success-700 font-semibold">✓ {successMessage}</p>
         </div>
       )}
 
       {errorMessage && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 font-medium">✗ {errorMessage}</p>
+        <div className="mb-4 bg-error-50 border border-error-300 rounded-lg p-4">
+          <p className="text-error-700 font-semibold">✗ {errorMessage}</p>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Amount Input */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-900 mb-2">
-            Amount to Pay *
+          <label htmlFor="amount" className="block text-sm font-semibold text-neutral-900 mb-2">
+            Amount to Pay (KES) *
           </label>
           <div className="relative">
-            <span className="absolute left-3 top-3 text-gray-600 font-medium">
+            <span className="absolute left-4 top-3 text-neutral-700 font-semibold">
               KES
             </span>
             <input
@@ -135,12 +134,12 @@ export default function PaymentForm({
               value={formData.amount || ""}
               onChange={handleAmountChange}
               disabled={isLoading || isWaitingForConfirmation}
-              className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full pl-14 pr-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
               required
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Remaining: KES {invoice.remainingBalance.toFixed(2)}
+          <p className="text-xs text-neutral-500 mt-2">
+            Balance: KES {invoice.remainingBalance.toFixed(2)}
           </p>
         </div>
 
@@ -148,7 +147,7 @@ export default function PaymentForm({
         <div>
           <label
             htmlFor="method"
-            className="block text-sm font-medium text-gray-900 mb-2"
+            className="block text-sm font-semibold text-neutral-900 mb-2"
           >
             Payment Method *
           </label>
@@ -157,12 +156,12 @@ export default function PaymentForm({
             value={formData.method}
             onChange={handleMethodChange}
             disabled={isLoading || isWaitingForConfirmation}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900 bg-white"
             required
           >
-            <option value="cash">Cash</option>
-            <option value="mobile_money">Mobile Money</option>
-            <option value="insurance">Insurance</option>
+            <option value="cash">💵 Cash</option>
+            <option value="mobile_money">📱 Mobile Money</option>
+            <option value="insurance">🏥 Insurance</option>
           </select>
         </div>
 
@@ -171,16 +170,16 @@ export default function PaymentForm({
           <div>
             <label
               htmlFor="insurance"
-              className="block text-sm font-medium text-gray-900 mb-2"
+              className="block text-sm font-semibold text-neutral-900 mb-2"
             >
-              Insurance Provider *
+              Select Insurance Provider *
             </label>
             <select
               id="insurance"
               value={formData.insuranceId || ""}
               onChange={handleInsuranceChange}
               disabled={isLoading || isWaitingForConfirmation}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900 bg-white"
               required
             >
               <option value="">Select Insurance...</option>
@@ -196,11 +195,8 @@ export default function PaymentForm({
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={
-            isLoading ||
-            isWaitingForConfirmation
-          }
-          className="w-full mt-6 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
+          disabled={isLoading || isWaitingForConfirmation}
+          className="w-full mt-8 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-neutral-400 text-white font-semibold rounded-lg transition-colors text-center"
         >
           {isLoading
             ? "Processing..."

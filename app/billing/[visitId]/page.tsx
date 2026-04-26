@@ -226,12 +226,17 @@ export default function BillingPage() {
   // Loading state
   if (state.isLoading) {
     return (
-      <main className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8">
+      <main className="min-h-screen bg-neutral-50">
+        <header className="bg-white border-b border-neutral-200 shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+            <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+          </div>
+        </header>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+          <div className="bg-white rounded-lg border border-neutral-200 p-8">
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <span className="ml-4 text-gray-700 text-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <span className="ml-4 text-neutral-700 text-lg">
                 Loading billing information...
               </span>
             </div>
@@ -244,14 +249,19 @@ export default function BillingPage() {
   // Error state
   if (!state.invoice) {
     return (
-      <main className="min-h-screen bg-gray-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 font-medium">
+      <main className="min-h-screen bg-neutral-50">
+        <header className="bg-white border-b border-neutral-200 shadow-sm">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+            <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+          </div>
+        </header>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
+          <div className="bg-white rounded-lg border border-neutral-200 p-8">
+            <div className="bg-error-50 border border-error-300 rounded-lg p-4">
+              <p className="text-error-700 font-semibold">
                 ✗ Unable to load invoice information
               </p>
-              <p className="text-red-700 text-sm mt-2">
+              <p className="text-error-600 text-sm mt-2">
                 {state.errorMessage ||
                   "The invoice could not be found. Please check the visit ID and try again."}
               </p>
@@ -264,12 +274,31 @@ export default function BillingPage() {
 
   // Main render
   return (
-    <main className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Page Header */}
+    <main className="min-h-screen bg-neutral-50">
+      {/* Header */}
+      <header className="bg-white border-b border-neutral-200 shadow-sm sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+              <p className="text-sm text-neutral-600 mt-1">Healthcare Invoice & Payment</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-neutral-600">Visit ID</p>
+              <p className="text-xl font-semibold text-neutral-900">{visitId}</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {/* Page Title */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Patient Billing</h1>
-          <p className="text-gray-600 mt-2">Visit ID: {visitId}</p>
+          <h2 className="text-3xl font-bold text-neutral-900">Patient Invoice</h2>
+          <p className="text-neutral-600 mt-2">
+            Manage and process payment for this patient visit
+          </p>
         </div>
 
         {/* Invoice Summary */}
@@ -290,10 +319,16 @@ export default function BillingPage() {
         />
 
         {/* Footer Info */}
-        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
-          <p className="text-xs text-gray-500">
-            For inquiries, contact billing support at billing@hospital.com or
-            call +254-800-123-456
+        <div className="bg-white rounded-lg border border-neutral-200 p-6 mt-8">
+          <p className="text-xs text-neutral-600">
+            <span className="font-semibold">📞 Support:</span> For billing inquiries, contact support at{" "}
+            <a
+              href="mailto:billing@efiche.com"
+              className="text-primary-600 hover:text-primary-700 font-medium"
+            >
+              billing@efiche.com
+            </a>{" "}
+            or call +250-800-123-456
           </p>
         </div>
       </div>
