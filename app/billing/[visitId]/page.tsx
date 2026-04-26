@@ -4,13 +4,10 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import InvoiceSummary from "@/components/billing/InvoiceSummary";
 import LineItemsList from "@/components/billing/LineItemsList";
-import PaymentForm from "@/components/billing/PaymentForm";
-import {
-  Invoice,
-  Insurance,
-  PaymentFormData,
-  Payment,
-} from "@/lib/types";
+import PaymentForm from "@/components/billing/EnhancedPaymentForm";
+import LoadingSkeleton from "@/components/billing/LoadingSkeleton";
+import EmptyState from "@/components/billing/EmptyState";
+import { Invoice, Insurance, PaymentFormData, Payment, PaymentRequest } from "@/lib/types";
 import {
   getInvoice,
   getInsurances,
@@ -97,7 +94,7 @@ export default function BillingPage() {
 
         const result = await checkMobileMoneyStatus(paymentId);
 
-        if (result.status === "completed") {
+        if (result.status === "confirmed") {
           // Payment confirmed
           clearPollingInterval();
           setState((prev) => ({
@@ -163,7 +160,7 @@ export default function BillingPage() {
   /**
    * Handle payment form submission
    */
-  const handlePaymentSubmit = async (formData: PaymentFormData) => {
+  const handlePaymentSubmit = async (paymentRequestData: PaymentRequest) => {
     if (!state.invoice) return;
 
     try {
@@ -174,15 +171,11 @@ export default function BillingPage() {
         successMessage: null,
       }));
 
-      const { success, payment } = await processPayment(
-        state.invoice.id,
-        formData.amount,
-        formData.method,
-        formData.insuranceId
-      );
+      const payment = await processPayment(state.invoice.id, paymentRequestData);
 
-      if (success) {
-        if (formData.method === "mobile_money") {
+      // Payment was successful
+      if (payment) {
+        if (paymentRequestData.method === "mobile_money") {
           // Start polling for confirmation
           setState((prev) => ({
             ...prev,
@@ -196,7 +189,7 @@ export default function BillingPage() {
           setState((prev) => ({
             ...prev,
             isProcessingPayment: false,
-            successMessage: `Payment of RWF ${formData.amount.toLocaleString()} processed successfully!`,
+            successMessage: `Payment of RWF ${parseFloat(paymentRequestData.amount).toLocaleString()} processed successfully!`,
           }));
 
           // Refresh invoice
@@ -232,15 +225,8 @@ export default function BillingPage() {
             <h1 className="text-2xl font-bold text-neutral-900">Patient Billing</h1>
           </div>
         </header>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-          <div className="bg-white rounded-lg border border-neutral-200 p-8">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <span className="ml-4 text-neutral-700 text-lg">
-                Loading billing information...
-              </span>
-            </div>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          <LoadingSkeleton />
         </div>
       </main>
     );
@@ -255,18 +241,11 @@ export default function BillingPage() {
             <h1 className="text-2xl font-bold text-neutral-900">Patient Billing</h1>
           </div>
         </header>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
-          <div className="bg-white rounded-lg border border-neutral-200 p-8">
-            <div className="bg-error-50 border border-error-300 rounded-lg p-4">
-              <p className="text-error-700 font-semibold">
-                ✗ Unable to load invoice information
-              </p>
-              <p className="text-error-600 text-sm mt-2">
-                {state.errorMessage ||
-                  "The invoice could not be found. Please check the visit ID and try again."}
-              </p>
-            </div>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+          <EmptyState 
+            visitId={visitId} 
+            onRetry={() => window.location.reload()} 
+          />
         </div>
       </main>
     );
