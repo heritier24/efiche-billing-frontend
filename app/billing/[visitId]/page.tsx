@@ -196,7 +196,7 @@ export default function BillingPage() {
           setState((prev) => ({
             ...prev,
             isProcessingPayment: false,
-            successMessage: `Payment of KES ${formData.amount.toFixed(2)} processed successfully!`,
+            successMessage: `Payment of RWF ${formData.amount.toLocaleString()} processed successfully!`,
           }));
 
           // Refresh invoice
@@ -229,7 +229,7 @@ export default function BillingPage() {
       <main className="min-h-screen bg-neutral-50">
         <header className="bg-white border-b border-neutral-200 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-            <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Patient Billing</h1>
           </div>
         </header>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
@@ -252,7 +252,7 @@ export default function BillingPage() {
       <main className="min-h-screen bg-neutral-50">
         <header className="bg-white border-b border-neutral-200 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-            <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Patient Billing</h1>
           </div>
         </header>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16">
@@ -280,7 +280,7 @@ export default function BillingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Efiche Billing</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">Patient Billing</h1>
               <p className="text-sm text-neutral-600 mt-1">Healthcare Invoice & Payment</p>
             </div>
             <div className="text-right">

@@ -61,10 +61,10 @@ export default function LineItemsList({ items }: LineItemsListProps) {
                   {item.quantity}
                 </td>
                 <td className="px-6 py-4 text-right text-neutral-700">
-                  KES {item.unitPrice.toFixed(2)}
+                  RWF {item.unitPrice.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-right font-semibold text-primary-600">
-                  KES {item.totalPrice.toFixed(2)}
+                  RWF {item.totalPrice.toLocaleString()}
                 </td>
               </tr>
             ))}
@@ -84,13 +84,13 @@ export default function LineItemsList({ items }: LineItemsListProps) {
               <div className="flex justify-between text-sm mb-2 text-neutral-700">
                 <span>Qty: {item.quantity} x</span>
                 <span className="font-medium">
-                  KES {item.unitPrice.toFixed(2)}
+                  RWF {item.unitPrice.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span className="text-neutral-900">Total:</span>
                 <span className="text-primary-600">
-                  KES {item.totalPrice.toFixed(2)}
+                  RWF {item.totalPrice.toLocaleString()}
                 </span>
               </div>
             </div>

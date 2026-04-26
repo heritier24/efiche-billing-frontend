@@ -73,21 +73,21 @@ export default function InvoiceSummary({ invoice }: InvoiceSummaryProps) {
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-600">Total Amount</p>
               <p className="text-lg font-bold text-neutral-900">
-                KES {invoice.totalAmount.toFixed(2)}
+                RWF {invoice.totalAmount.toLocaleString()}
               </p>
             </div>
 
             <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
               <p className="text-sm text-neutral-600">Amount Paid</p>
               <p className="text-base font-semibold text-success-600">
-                KES {invoice.amountPaid.toFixed(2)}
+                RWF {invoice.amountPaid.toLocaleString()}
               </p>
             </div>
 
             <div className="border-t border-neutral-200 pt-3 flex items-center justify-between bg-error-50 -m-4 p-4 rounded-md">
               <p className="text-sm font-semibold text-neutral-900">Remaining Balance</p>
               <p className="text-xl font-bold text-error-600">
-                KES {invoice.remainingBalance.toFixed(2)}
+                RWF {invoice.remainingBalance.toLocaleString()}
               </p>
             </div>
           </div>

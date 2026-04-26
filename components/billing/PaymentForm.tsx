@@ -44,7 +44,7 @@ export default function PaymentForm({
 
     if (formData.amount > invoice.remainingBalance) {
       alert(
-        `Amount cannot exceed remaining balance of KES ${invoice.remainingBalance.toFixed(2)}`
+        `Amount cannot exceed remaining balance of RWF ${invoice.remainingBalance.toLocaleString()}`
       );
       return;
     }
@@ -119,11 +119,11 @@ export default function PaymentForm({
         {/* Amount Input */}
         <div>
           <label htmlFor="amount" className="block text-sm font-semibold text-neutral-900 mb-2">
-            Amount to Pay (KES) *
+            Amount to Pay (RWF) *
           </label>
           <div className="relative">
             <span className="absolute left-4 top-3 text-neutral-700 font-semibold">
-              KES
+              RWF
             </span>
             <input
               id="amount"
@@ -139,7 +139,7 @@ export default function PaymentForm({
             />
           </div>
           <p className="text-xs text-neutral-500 mt-2">
-            Balance: KES {invoice.remainingBalance.toFixed(2)}
+            Balance: RWF {invoice.remainingBalance.toLocaleString()}
           </p>
         </div>
 
@@ -202,7 +202,7 @@ export default function PaymentForm({
             ? "Processing..."
             : isWaitingForConfirmation
               ? "Waiting for Confirmation..."
-              : `Pay KES ${formData.amount.toFixed(2)}`}
+              : `Pay RWF ${formData.amount.toLocaleString()}`}
         </button>
       </form>
     </div>
