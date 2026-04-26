@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface Payment {
@@ -30,80 +30,36 @@ export default function DashboardPaymentsPage() {
   const [dateFilter, setDateFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
-  // Mock data (replace with real API call)
-  const payments: Payment[] = [
-    {
-      id: "PAY-001",
-      invoiceId: "INV-001",
-      patientName: "John Doe",
-      amount: 50000,
-      method: "cash",
-      status: "completed",
-      timestamp: "2024-04-26T10:30:00Z",
-      processedBy: "Admin User",
-      notes: "Full payment for consultation",
-    },
-    {
-      id: "PAY-002",
-      invoiceId: "INV-002",
-      patientName: "Jane Smith",
-      amount: 30000,
-      method: "mobile_money",
-      phoneNumber: "+250 788 123 456",
-      status: "completed",
-      timestamp: "2024-04-25T14:15:00Z",
-      confirmationCode: "CNF-ABC123XYZ",
-      processedBy: "John Doe",
-      notes: "Partial payment via MTN Mobile Money",
-    },
-    {
-      id: "PAY-003",
-      invoiceId: "INV-003",
-      patientName: "Mike Johnson",
-      amount: 35000,
-      method: "insurance",
-      insuranceName: "RSSB",
-      status: "completed",
-      timestamp: "2024-04-25T09:45:00Z",
-      processedBy: "Admin User",
-      notes: "Full insurance coverage applied",
-    },
-    {
-      id: "PAY-004",
-      invoiceId: "INV-004",
-      patientName: "Sarah Williams",
-      amount: 25000,
-      method: "mobile_money",
-      phoneNumber: "+250 733 987 654",
-      status: "pending",
-      timestamp: "2024-04-26T11:20:00Z",
-      processedBy: "Jane Smith",
-      notes: "Awaiting mobile money confirmation",
-    },
-    {
-      id: "PAY-005",
-      invoiceId: "INV-005",
-      patientName: "David Brown",
-      amount: 20000,
-      method: "cash",
-      status: "failed",
-      timestamp: "2024-04-24T16:30:00Z",
-      processedBy: "Admin User",
-      notes: "Payment processing failed - system error",
-    },
-    {
-      id: "PAY-006",
-      invoiceId: "INV-002",
-      patientName: "Jane Smith",
-      amount: 15000,
-      method: "cash",
-      status: "completed",
-      timestamp: "2024-04-22T13:00:00Z",
-      processedBy: "Admin User",
-      notes: "Additional payment for remaining balance",
-    },
-  ];
+  // Fetch payments on component mount and when filters change
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        setIsLoading(true);
+        
+        // TODO: Replace with real API call when available
+        // const response = await fetch(`/api/payments?search=${searchTerm}&status=${statusFilter}&method=${methodFilter}&date_from=${dateFilter}&page=${currentPage}&limit=20`);
+        // const data = await response.json();
+        // setPayments(data.data);
+        // setTotalCount(data.total);
+        
+        // For now, keep empty array until backend API is ready
+        setPayments([]);
+        setTotalCount(0);
+        
+      } catch (error) {
+        console.error('Error fetching payments:', error);
+        setPayments([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, [searchTerm, statusFilter, methodFilter, dateFilter, currentPage]);
 
   // Filter payments
   const filteredPayments = payments.filter((payment) => {
@@ -122,6 +78,14 @@ export default function DashboardPaymentsPage() {
     
     return matchesSearch && matchesStatus && matchesMethod && matchesDate;
   });
+
+  // Pagination (will be replaced by server-side pagination)
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+  const paginatedPayments = filteredPayments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const isToday = (timestamp: string) => {
     const paymentDate = new Date(timestamp);
@@ -236,13 +200,6 @@ export default function DashboardPaymentsPage() {
     console.log("Reconciling payments...");
     // TODO: Implement reconciliation
   };
-
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
-  const paginatedPayments = filteredPayments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const totalPayments = payments.length;
   const completedPayments = payments.filter(p => p.status === "completed").length;
@@ -423,8 +380,30 @@ export default function DashboardPaymentsPage() {
 
       {/* Payments Table */}
       <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="text-neutral-600 mt-4">Loading payments...</p>
+            </div>
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="text-4xl mb-4">💳</div>
+              <h3 className="text-lg font-semibold text-neutral-900 mb-2">No payments found</h3>
+              <p className="text-neutral-600 mb-6">Payment records will appear here once they are processed</p>
+              <button
+                onClick={() => console.log("Record payment modal")}
+                className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+              >
+                + Record Payment
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-neutral-50 border-b border-neutral-200">
               <tr>
                 <th className="px-6 py-3 text-left">
@@ -552,45 +531,6 @@ export default function DashboardPaymentsPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="border-t border-neutral-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-600">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredPayments.length)} of {filteredPayments.length} results
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      currentPage === page
-                        ? "bg-primary-600 text-white"
-                        : "border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
     </div>

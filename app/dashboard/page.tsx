@@ -5,8 +5,9 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/useAuth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AddPatientModal, NewInvoiceModal, RecordPaymentModal } from "@/components/dashboard/modals";
+import { getDashboardStats, getInsurances } from "@/lib/api/mock";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -16,24 +17,43 @@ export default function DashboardPage() {
   const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
 
-  // Mock data for modals (replace with real API calls)
-  const mockPatients = [
-    { id: "P001", name: "John Doe" },
-    { id: "P002", name: "Jane Smith" },
-    { id: "P003", name: "Mike Johnson" },
-  ];
+  // Dynamic data states
+  const [patients, setPatients] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [insurances, setInsurances] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  const mockInvoices = [
-    { id: "INV-001", patientName: "John Doe", totalAmount: 50000, remainingBalance: 15000 },
-    { id: "INV-002", patientName: "Jane Smith", totalAmount: 35000, remainingBalance: 35000 },
-    { id: "INV-003", patientName: "Mike Johnson", totalAmount: 72000, remainingBalance: 0 },
-  ];
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsLoadingData(true);
+        
+        // Fetch dashboard statistics
+        const stats = await getDashboardStats();
+        setDashboardStats(stats);
 
-  const mockInsurances = [
-    { id: "INS001", name: "RSSB", code: "RSSB-001" },
-    { id: "INS002", name: "MMI", code: "MMI-002" },
-    { id: "INS003", name: "MediCare", code: "MC-003" },
-  ];
+        // Fetch insurances for modals
+        const insuranceData = await getInsurances();
+        setInsurances(insuranceData);
+
+        // TODO: Fetch patients and invoices when APIs are available
+        // const patientsData = await getPatients();
+        // setPatients(patientsData);
+        
+        // const invoicesData = await getRecentInvoices();
+        // setInvoices(invoicesData);
+        
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   // Modal handlers
   const handleAddPatient = async (patientData: any) => {
@@ -55,32 +75,63 @@ export default function DashboardPage() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   };
 
-  const stats = [
+  // Dynamic stats based on API data
+  const stats = dashboardStats ? [
     {
       title: "Total Invoices",
-      value: "248",
+      value: dashboardStats.total_invoices?.toString() || "0",
       change: "+12%",
       icon: "📋",
       color: "primary",
     },
     {
       title: "Total Revenue",
-      value: "RWF 2.4M",
+      value: `RWF ${(dashboardStats.total_revenue / 1000000).toFixed(1)}M`,
       change: "+8%",
       icon: "💰",
       color: "success",
     },
     {
       title: "Pending Payments",
-      value: "32",
+      value: dashboardStats.pending_invoices?.toString() || "0",
       change: "-5%",
       icon: "⏳",
       color: "warning",
     },
     {
       title: "Active Patients",
-      value: "156",
+      value: "156", // TODO: Add to API when available
       change: "+20%",
+      icon: "👥",
+      color: "info",
+    },
+  ] : [
+    // Loading placeholder stats
+    {
+      title: "Total Invoices",
+      value: "...",
+      change: "Loading",
+      icon: "📋",
+      color: "primary",
+    },
+    {
+      title: "Total Revenue",
+      value: "...",
+      change: "Loading",
+      icon: "💰",
+      color: "success",
+    },
+    {
+      title: "Pending Payments",
+      value: "...",
+      change: "Loading",
+      icon: "⏳",
+      color: "warning",
+    },
+    {
+      title: "Active Patients",
+      value: "...",
+      change: "Loading",
       icon: "👥",
       color: "info",
     },
@@ -144,26 +195,7 @@ export default function DashboardPage() {
             Recent Invoices
           </h3>
           <div className="space-y-3">
-            {[
-              {
-                id: "INV-001",
-                patient: "John Doe",
-                amount: "RWF 50,000",
-                status: "paid",
-              },
-              {
-                id: "INV-002",
-                patient: "Jane Smith",
-                amount: "RWF 35,000",
-                status: "pending",
-              },
-              {
-                id: "INV-003",
-                patient: "Mike Johnson",
-                amount: "RWF 72,000",
-                status: "partially_paid",
-              },
-            ].map((invoice) => (
+            {invoices.length > 0 ? invoices.slice(0, 5).map((invoice) => (
               <div
                 key={invoice.id}
                 className="flex items-center justify-between py-3 border-b border-neutral-200 last:border-0"
@@ -172,21 +204,19 @@ export default function DashboardPage() {
                   <p className="font-semibold text-neutral-900">
                     {invoice.id}
                   </p>
-                  <p className="text-sm text-neutral-600">{invoice.patient}</p>
+                  <p className="text-sm text-neutral-600">{invoice.patientName || 'Unknown Patient'}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-semibold text-neutral-900">
-                    {invoice.amount}
+                    RWF {invoice.totalAmount?.toLocaleString() || '0'}
                   </p>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                      invoice.status === "paid"
-                        ? "bg-success-50 text-success-700"
-                        : invoice.status === "pending"
-                          ? "bg-error-50 text-error-700"
-                          : "bg-warning-50 text-warning-700"
-                    }`}
-                  >
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    invoice.status === "paid"
+                      ? "bg-success-100 text-success-700"
+                      : invoice.status === "pending"
+                        ? "bg-warning-100 text-warning-700"
+                        : "bg-info-100 text-info-700"
+                  }`}>
                     {invoice.status === "paid"
                       ? "Paid"
                       : invoice.status === "pending"
@@ -195,7 +225,12 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-neutral-500">
+                <p>No recent invoices found</p>
+                <p className="text-sm mt-2">Invoices will appear here once they are created</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -238,15 +273,15 @@ export default function DashboardPage() {
         isOpen={showNewInvoiceModal}
         onClose={() => setShowNewInvoiceModal(false)}
         onSubmit={handleCreateInvoice}
-        patients={mockPatients}
+        patients={patients}
       />
 
       <RecordPaymentModal
         isOpen={showRecordPaymentModal}
         onClose={() => setShowRecordPaymentModal(false)}
         onSubmit={handleRecordPayment}
-        invoices={mockInvoices}
-        insurances={mockInsurances}
+        invoices={invoices}
+        insurances={insurances}
       />
     </div>
   );

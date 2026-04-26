@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ReportData {
   revenue: {
@@ -33,27 +33,34 @@ export default function DashboardReportsPage() {
   const [reportType, setReportType] = useState("overview");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Mock data (replace with real API call)
-  const reportData: ReportData = {
-    revenue: {
-      daily: [45000, 52000, 38000, 61000, 47000, 55000, 49000], // Last 7 days
-      weekly: [320000, 380000, 350000, 410000], // Last 4 weeks
-      monthly: [1200000, 1450000, 1380000, 1520000, 1490000, 1650000], // Last 6 months
-    },
-    payments: {
-      byMethod: { cash: 450000, mobile_money: 380000, insurance: 520000 },
-      byStatus: { completed: 1250000, pending: 85000, failed: 20000 },
-    },
-    invoices: {
-      byStatus: { pending: 45, partially_paid: 23, paid: 156, overdue: 12 },
-      averageAmount: 48500,
-    },
-    patients: {
-      new: 28,
-      active: 156,
-      total: 234,
-    },
-  };
+  // Dynamic data states
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch report data on component mount and when date range changes
+  useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // TODO: Replace with real API call when available
+        // const response = await fetch(`/api/reports?date_range=${dateRange}`);
+        // const data = await response.json();
+        // setReportData(data);
+        
+        // For now, keep null until backend API is ready
+        setReportData(null);
+        
+      } catch (error) {
+        console.error('Error fetching report data:', error);
+        setReportData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReportData();
+  }, [dateRange]);
 
   const handleExport = async (format: string) => {
     setIsExporting(true);
@@ -63,13 +70,15 @@ export default function DashboardReportsPage() {
   };
 
   const getRevenueData = () => {
+    if (!reportData) return [];
+    
     switch (dateRange) {
       case "week":
-        return reportData.revenue.weekly;
+        return reportData?.revenue?.weekly || [];
       case "month":
-        return reportData.revenue.monthly;
+        return reportData?.revenue?.monthly || [];
       default:
-        return reportData.revenue.daily;
+        return reportData?.revenue?.daily || [];
     }
   };
 
@@ -85,8 +94,8 @@ export default function DashboardReportsPage() {
   };
 
   const totalRevenue = getRevenueData().reduce((sum, val) => sum + val, 0);
-  const totalPayments = Object.values(reportData.payments.byMethod).reduce((sum, val) => sum + val, 0);
-  const totalInvoices = Object.values(reportData.invoices.byStatus).reduce((sum, val) => sum + val, 0);
+  const totalPayments = reportData ? Object.values(reportData.payments.byMethod).reduce((sum, val) => sum + val, 0) : 0;
+  const totalInvoices = reportData ? Object.values(reportData.invoices.byStatus).reduce((sum, val) => sum + val, 0) : 0;
 
   return (
     <div className="p-6">
@@ -199,7 +208,7 @@ export default function DashboardReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-600">Active Patients</p>
-                  <p className="text-2xl font-bold text-info-600 mt-1">{reportData.patients.active}</p>
+                  <p className="text-2xl font-bold text-info-600 mt-1">{reportData?.patients?.active || 0}</p>
                   <p className="text-xs text-success-600 mt-2">+15 new this month</p>
                 </div>
                 <div className="text-3xl">👥</div>
@@ -228,7 +237,7 @@ export default function DashboardReportsPage() {
             <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-neutral-900 mb-4">Payment Methods</h3>
               <div className="space-y-4">
-                {Object.entries(reportData.payments.byMethod).map(([method, amount]) => {
+                {reportData ? Object.entries(reportData.payments.byMethod).map(([method, amount]) => {
                   const percentage = (amount / totalPayments) * 100;
                   const colors = {
                     cash: "bg-neutral-500",
@@ -254,14 +263,14 @@ export default function DashboardReportsPage() {
                       <p className="text-xs text-neutral-500 mt-1">{percentage.toFixed(1)}%</p>
                     </div>
                   );
-                })}
+                }) : []}
               </div>
             </div>
 
             <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-neutral-900 mb-4">Invoice Status</h3>
               <div className="space-y-4">
-                {Object.entries(reportData.invoices.byStatus).map(([status, count]) => {
+                {reportData ? Object.entries(reportData.invoices.byStatus).map(([status, count]) => {
                   const percentage = (count / totalInvoices) * 100;
                   const colors = {
                     pending: "bg-warning-500",
@@ -275,7 +284,9 @@ export default function DashboardReportsPage() {
                         <span className="text-sm font-medium text-neutral-700 capitalize">
                           {status.replace("_", " ")}
                         </span>
-                        <span className="text-sm font-bold text-neutral-900">{count}</span>
+                        <span className="text-sm font-bold text-neutral-900">
+                          {count}
+                        </span>
                       </div>
                       <div className="w-full bg-neutral-200 rounded-full h-2">
                         <div
@@ -286,7 +297,7 @@ export default function DashboardReportsPage() {
                       <p className="text-xs text-neutral-500 mt-1">{percentage.toFixed(1)}%</p>
                     </div>
                   );
-                })}
+                }) : []}
               </div>
             </div>
           </div>
@@ -336,7 +347,7 @@ export default function DashboardReportsPage() {
             <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-neutral-900 mb-4">Payment Status</h3>
               <div className="space-y-4">
-                {Object.entries(reportData.payments.byStatus).map(([status, amount]) => {
+                {reportData ? Object.entries(reportData.payments.byStatus).map(([status, amount]) => {
                   const colors = {
                     completed: "text-success-600 bg-success-50",
                     pending: "text-warning-600 bg-warning-50",
@@ -350,14 +361,14 @@ export default function DashboardReportsPage() {
                       <span className="font-bold text-neutral-900">RWF {amount.toLocaleString()}</span>
                     </div>
                   );
-                })}
+                }) : []}
               </div>
             </div>
 
             <div className="bg-white rounded-lg border border-neutral-200 p-6">
               <h3 className="text-lg font-semibold text-neutral-900 mb-4">Payment Methods</h3>
               <div className="space-y-4">
-                {Object.entries(reportData.payments.byMethod).map(([method, amount]) => {
+                {reportData ? Object.entries(reportData.payments.byMethod).map(([method, amount]) => {
                   const icons = {
                     cash: "💵",
                     mobile_money: "📱",
@@ -372,7 +383,7 @@ export default function DashboardReportsPage() {
                       <span className="font-bold text-neutral-900">RWF {amount.toLocaleString()}</span>
                     </div>
                   );
-                })}
+                }) : []}
               </div>
             </div>
           </div>
@@ -387,7 +398,7 @@ export default function DashboardReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-600">Total Patients</p>
-                  <p className="text-2xl font-bold text-neutral-900 mt-1">{reportData.patients.total}</p>
+                  <p className="text-2xl font-bold text-neutral-900 mt-1">{reportData?.patients?.total || 0}</p>
                 </div>
                 <div className="text-3xl">👥</div>
               </div>
@@ -396,7 +407,7 @@ export default function DashboardReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-600">Active Patients</p>
-                  <p className="text-2xl font-bold text-success-600 mt-1">{reportData.patients.active}</p>
+                  <p className="text-2xl font-bold text-success-600 mt-1">{reportData?.patients?.active || 0}</p>
                 </div>
                 <div className="text-3xl">✅</div>
               </div>
@@ -405,7 +416,7 @@ export default function DashboardReportsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-neutral-600">New Patients</p>
-                  <p className="text-2xl font-bold text-primary-600 mt-1">{reportData.patients.new}</p>
+                  <p className="text-2xl font-bold text-primary-600 mt-1">{reportData?.patients?.new || 0}</p>
                 </div>
                 <div className="text-3xl">🆕</div>
               </div>
