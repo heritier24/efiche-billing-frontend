@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏥 eFiche Billing Frontend
 
-## Getting Started
+> Modern React frontend for Efiche's healthcare billing system with complete backend API integration.
 
-First, run the development server:
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js**: 18.0+ 
+- **npm**: 9.0+ or **yarn**: 1.22+
+- **Backend API**: eFiche Billing API running on `http://localhost:8000`
+
+### Setup
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd efiche-billing-frontend
+
+# Install dependencies
+npm install
+
+# Configure environment
+echo "NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api" > .env.local
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔐 Login Credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use these credentials to access the system:
 
-## Learn More
+```
+Admin:    admin@efiche.rw     / password123
+Cashier:  cashier@efiche.rw   / password123  
+Staff:    staff@efiche.rw      / password123
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 📱 Key Features
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Authentication
+- **JWT-based login** with automatic token management
+- **Role-based access** (Admin, Cashier, Staff)
+- **Secure logout** with token cleanup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Patient Management
+- **Patient registration** with Rwanda phone validation
+- **Search and filter** patients by name, email, phone
+- **Patient profiles** with visit history and billing records
+- **Create new patients** with insurance information
 
-## Deploy on Vercel
+### Billing & Payments
+- **Invoice creation** from patient visits
+- **Multiple payment methods**: Cash, Mobile Money, Insurance
+- **Rwanda mobile money** integration (MTN, Airtel, Tigo)
+- **Payment tracking** with real-time status updates
+- **Currency formatting** in RWF (Rwandan Francs)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Dashboard
+- **Overview statistics** (total patients, invoices, revenue)
+- **Recent invoices** and payment status
+- **Patient analytics** and visit patterns
+- **Revenue tracking** and financial reports
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🌍 Rwanda-Specific Features
+
+- **Phone validation**: +2507xxxxxxxx format
+- **Currency**: RWF (Rwandan Franc)
+- **Insurance providers**: RSSB, MMI, MediCare Rwanda, Prime Insurance
+- **Mobile money**: MTN Mobile Money, Airtel Money, Tigo Cash
+
+## 🛠️ Development
+
+### Common Commands
+
+```bash
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm run start
+
+# Check code quality
+npm run lint
+```
+
+### Testing API Connection
+
+```typescript
+// Test in browser console
+import { testUtils } from '@/lib/api/test';
+await testUtils.healthCheck();
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**API Connection Error**
+- Check backend is running: `curl http://localhost:8000`
+- Verify environment: `echo $NEXT_PUBLIC_API_BASE_URL`
+
+**Login Issues**
+- Clear browser storage and refresh
+- Use correct test credentials
+
+**Build Errors**
+- Clear cache: `rm -rf .next`
+- Reinstall: `npm ci`
+
+## 📞 Support
+
+- **Backend Integration**: See `BACKEND_INTEGRATION_GUIDE.md`
+- **Test Credentials**: All users use password `password123`
+
+---
+
+## 🇷🇼 Built for Rwanda's Healthcare
+
+**🚀 Production Ready • 🔒 Fully Integrated • 📱 Mobile Optimized**
