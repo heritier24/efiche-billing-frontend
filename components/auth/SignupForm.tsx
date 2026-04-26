@@ -46,7 +46,13 @@ export default function SignupPage() {
         return;
       }
 
-      await signup(formData);
+      await signup({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        password_confirmation: formData.confirmPassword,
+        role: "staff", // Default role for new users
+      });
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
