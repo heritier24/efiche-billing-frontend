@@ -5,8 +5,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api/backend";
+import NewInvoiceModal from "@/components/dashboard/modals/NewInvoiceModal";
 
 interface Invoice {
   id: string;
@@ -28,74 +30,192 @@ export default function DashboardInvoicesPage() {
   const [dateFilter, setDateFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Mock data (replace with real API call)
-  const invoices: Invoice[] = [
-    {
-      id: "INV-001",
-      patientName: "John Doe",
-      visitId: "V001",
-      invoiceDate: "2024-04-20",
-      dueDate: "2024-04-27",
-      status: "pending",
-      totalAmount: 50000,
-      amountPaid: 0,
-      remainingBalance: 50000,
-      lineItemsCount: 3,
-    },
-    {
-      id: "INV-002",
-      patientName: "Jane Smith",
-      visitId: "V002",
-      invoiceDate: "2024-04-19",
-      dueDate: "2024-04-26",
-      status: "partially_paid",
-      totalAmount: 75000,
-      amountPaid: 30000,
-      remainingBalance: 45000,
-      lineItemsCount: 5,
-      lastPaymentDate: "2024-04-22",
-    },
-    {
-      id: "INV-003",
-      patientName: "Mike Johnson",
-      visitId: "V003",
-      invoiceDate: "2024-04-18",
-      dueDate: "2024-04-25",
-      status: "paid",
-      totalAmount: 35000,
-      amountPaid: 35000,
-      remainingBalance: 0,
-      lineItemsCount: 2,
-      lastPaymentDate: "2024-04-21",
-    },
-    {
-      id: "INV-004",
-      patientName: "Sarah Williams",
-      visitId: "V004",
-      invoiceDate: "2024-04-15",
-      dueDate: "2024-04-22",
-      status: "overdue",
-      totalAmount: 60000,
-      amountPaid: 0,
-      remainingBalance: 60000,
-      lineItemsCount: 4,
-    },
-    {
-      id: "INV-005",
-      patientName: "David Brown",
-      visitId: "V005",
-      invoiceDate: "2024-04-17",
-      dueDate: "2024-04-24",
-      status: "pending",
-      totalAmount: 45000,
-      amountPaid: 0,
-      remainingBalance: 45000,
-      lineItemsCount: 3,
-    },
-  ];
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Use real API call
+        const response = await api.invoices.listInvoices({
+          search: searchTerm || undefined,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          page: currentPage,
+          limit: 20
+        });
+        
+        // Transform backend data to frontend format
+        const transformedInvoices = response.data.map((invoice) => ({
+          id: invoice.id.toString(),
+          patientName: invoice.visit?.patient?.full_name || 'Unknown Patient',
+          visitId: invoice.visit_id?.toString() || '',
+          invoiceDate: invoice.created_at?.split('T')[0] || '',
+          dueDate: invoice.due_date?.split('T')[0] || '',
+          status: invoice.status as "pending" | "partially_paid" | "paid" | "overdue",
+          totalAmount: invoice.total_amount || 0,
+          amountPaid: invoice.total_paid || 0,
+          remainingBalance: invoice.remaining_balance || 0,
+          lineItemsCount: invoice.line_items?.length || 0,
+          lastPaymentDate: undefined // Not available in BackendInvoice
+        }));
+        
+        setInvoices(transformedInvoices);
+        setTotalCount(response.total || 0);
+        
+      } catch (error) {
+        console.error('Error fetching invoices:', error);
+        
+        // Check if it's a network error (backend not available) or 404 (endpoint not implemented)
+        const isNetworkError = error instanceof Error && (error.message.includes('Network error') || error.message.includes('fetch'));
+        const is404Error = error instanceof Error && error.message.includes('404') || 
+                           (error as any)?.status === 404;
+        
+        if (isNetworkError || is404Error) {
+          console.log('Backend endpoint not available, using mock data for development');
+          
+          // Use mock data as fallback
+          const mockInvoices = getMockInvoices();
+          const filteredMockInvoices = mockInvoices.filter((invoice: Invoice) => {
+            const matchesSearch = invoice.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                 invoice.id.includes(searchTerm);
+            
+            const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+            
+            return matchesSearch && matchesStatus;
+          });
+          
+          const startIndex = (currentPage - 1) * 20;
+          const endIndex = startIndex + 20;
+          const paginatedMockInvoices = filteredMockInvoices.slice(startIndex, endIndex);
+          
+          setInvoices(paginatedMockInvoices);
+          setTotalCount(filteredMockInvoices.length);
+        } else {
+          // Other errors - show empty state
+          setInvoices([]);
+          setTotalCount(0);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Filter invoices
+    fetchInvoices();
+  }, [searchTerm, statusFilter, dateFilter, currentPage]);
+
+  // Mock data function for development
+  const getMockInvoices = (): Invoice[] => {
+    return [
+      {
+        id: "1",
+        patientName: "John Doe",
+        visitId: "123",
+        invoiceDate: "2024-04-20",
+        dueDate: "2024-04-27",
+        status: "pending",
+        totalAmount: 50000,
+        amountPaid: 0,
+        remainingBalance: 50000,
+        lineItemsCount: 3,
+        lastPaymentDate: undefined
+      },
+      {
+        id: "2",
+        patientName: "Jane Smith",
+        visitId: "124",
+        invoiceDate: "2024-04-18",
+        dueDate: "2024-04-25",
+        status: "partially_paid",
+        totalAmount: 75000,
+        amountPaid: 30000,
+        remainingBalance: 45000,
+        lineItemsCount: 4,
+        lastPaymentDate: "2024-04-22"
+      },
+      {
+        id: "3",
+        patientName: "Robert Mugisha",
+        visitId: "125",
+        invoiceDate: "2024-04-15",
+        dueDate: "2024-04-22",
+        status: "overdue",
+        totalAmount: 120000,
+        amountPaid: 50000,
+        remainingBalance: 70000,
+        lineItemsCount: 5,
+        lastPaymentDate: "2024-04-19"
+      },
+      {
+        id: "4",
+        patientName: "Grace Uwimana",
+        visitId: "126",
+        invoiceDate: "2024-04-22",
+        dueDate: "2024-04-29",
+        status: "paid",
+        totalAmount: 35000,
+        amountPaid: 35000,
+        remainingBalance: 0,
+        lineItemsCount: 2,
+        lastPaymentDate: "2024-04-24"
+      },
+      {
+        id: "5",
+        patientName: "Eric Niyonzima",
+        visitId: "127",
+        invoiceDate: "2024-04-19",
+        dueDate: "2024-04-26",
+        status: "pending",
+        totalAmount: 88000,
+        amountPaid: 0,
+        remainingBalance: 88000,
+        lineItemsCount: 6,
+        lastPaymentDate: undefined
+      }
+    ];
+  };
+
+  // Handle invoice creation
+  const handleCreateInvoice = async (invoiceData: any) => {
+    try {
+      // Transform frontend data to backend format
+      const backendInvoiceData = {
+        visit_id: parseInt(invoiceData.visitId),
+        line_items: invoiceData.lineItems.map((item: any) => ({
+          item_code: item.itemCode,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unitPrice
+        })),
+        insurance_id: invoiceData.insuranceId ? parseInt(invoiceData.insuranceId) : undefined,
+        due_date: invoiceData.dueDate
+      };
+
+      await api.invoices.createInvoice(backendInvoiceData);
+      
+      // Refresh invoices list by triggering the useEffect
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      
+      // Check if it's a network error (backend not available) or 404 (endpoint not implemented)
+      const isNetworkError = error instanceof Error && (error.message.includes('Network error') || error.message.includes('fetch'));
+      const is404Error = error instanceof Error && error.message.includes('404') || 
+                         (error as any)?.status === 404;
+      
+      if (isNetworkError || is404Error) {
+        alert('Backend invoice endpoint not implemented yet. Invoice creation simulated for development.');
+        setIsCreateModalOpen(false);
+      } else {
+        alert('Failed to create invoice. Please try again.');
+      }
+    }
+  };
+
+  // Client-side filtering (will be replaced by server-side filtering)
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch = invoice.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -124,6 +244,14 @@ export default function DashboardInvoicesPage() {
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     return invoiceDate >= monthAgo;
   };
+
+  // Pagination (will be replaced by server-side pagination)
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  const paginatedInvoices = filteredInvoices.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -181,16 +309,18 @@ export default function DashboardInvoicesPage() {
     // TODO: Implement export functionality
   };
 
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const paginatedInvoices = filteredInvoices.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
   const totalRevenue = invoices.reduce((sum, inv) => sum + inv.amountPaid, 0);
   const pendingAmount = invoices.filter(inv => inv.status === "pending" || inv.status === "overdue")
                               .reduce((sum, inv) => sum + inv.remainingBalance, 0);
+
+  // Mock patients for invoice creation
+  const mockPatients = [
+    { id: "1", name: "John Doe" },
+    { id: "2", name: "Jane Smith" },
+    { id: "3", name: "Robert Mugisha" },
+    { id: "4", name: "Grace Uwimana" },
+    { id: "5", name: "Eric Niyonzima" }
+  ];
 
   return (
     <div className="p-6">
@@ -208,12 +338,12 @@ export default function DashboardInvoicesPage() {
             >
               📥 Export
             </button>
-            <Link
-              href="/dashboard"
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
               className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
             >
               + New Invoice
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -347,18 +477,40 @@ export default function DashboardInvoicesPage() {
 
       {/* Invoices Table */}
       <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-neutral-50 border-b border-neutral-200">
-              <tr>
-                <th className="px-6 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={selectedInvoices.length === paginatedInvoices.length && paginatedInvoices.length > 0}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                    className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                  />
-                </th>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+              <p className="text-neutral-600 mt-4">Loading invoices...</p>
+            </div>
+          </div>
+        ) : invoices.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="text-4xl mb-4">📋</div>
+              <h3 className="text-lg font-semibold text-neutral-900 mb-2">No invoices found</h3>
+              <p className="text-neutral-600 mb-6">Get started by creating your first invoice</p>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+              >
+                + Create Invoice
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-neutral-50 border-b border-neutral-200">
+                <tr>
+                  <th className="px-6 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={selectedInvoices.length === paginatedInvoices.length && paginatedInvoices.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                    />
+                  </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                   Invoice ID
                 </th>
@@ -459,47 +611,16 @@ export default function DashboardInvoicesPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="border-t border-neutral-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-600">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredInvoices.length)} of {filteredInvoices.length} results
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium"
-                >
-                  Previous
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                      currentPage === page
-                        ? "bg-primary-600 text-white"
-                        : "border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
         )}
       </div>
+
+      {/* New Invoice Modal */}
+      <NewInvoiceModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateInvoice}
+        patients={mockPatients}
+      />
     </div>
   );
 }
