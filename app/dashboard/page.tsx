@@ -5,9 +5,55 @@
 "use client";
 
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useState } from "react";
+import { AddPatientModal, NewInvoiceModal, RecordPaymentModal } from "@/components/dashboard/modals";
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  
+  // Modal states
+  const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
+  const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
+
+  // Mock data for modals (replace with real API calls)
+  const mockPatients = [
+    { id: "P001", name: "John Doe" },
+    { id: "P002", name: "Jane Smith" },
+    { id: "P003", name: "Mike Johnson" },
+  ];
+
+  const mockInvoices = [
+    { id: "INV-001", patientName: "John Doe", totalAmount: 50000, remainingBalance: 15000 },
+    { id: "INV-002", patientName: "Jane Smith", totalAmount: 35000, remainingBalance: 35000 },
+    { id: "INV-003", patientName: "Mike Johnson", totalAmount: 72000, remainingBalance: 0 },
+  ];
+
+  const mockInsurances = [
+    { id: "INS001", name: "RSSB", code: "RSSB-001" },
+    { id: "INS002", name: "MMI", code: "MMI-002" },
+    { id: "INS003", name: "MediCare", code: "MC-003" },
+  ];
+
+  // Modal handlers
+  const handleAddPatient = async (patientData: any) => {
+    console.log("Adding patient:", patientData);
+    // TODO: API call to add patient
+    // For now, just simulate success
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  };
+
+  const handleCreateInvoice = async (invoiceData: any) => {
+    console.log("Creating invoice:", invoiceData);
+    // TODO: API call to create invoice
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  };
+
+  const handleRecordPayment = async (paymentData: any) => {
+    console.log("Recording payment:", paymentData);
+    // TODO: API call to record payment
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  };
 
   const stats = [
     {
@@ -19,7 +65,7 @@ export default function DashboardPage() {
     },
     {
       title: "Total Revenue",
-      value: "KES 2.4M",
+      value: "RWF 2.4M",
       change: "+8%",
       icon: "💰",
       color: "success",
@@ -102,19 +148,19 @@ export default function DashboardPage() {
               {
                 id: "INV-001",
                 patient: "John Doe",
-                amount: "KES 5,000",
+                amount: "RWF 50,000",
                 status: "paid",
               },
               {
                 id: "INV-002",
                 patient: "Jane Smith",
-                amount: "KES 3,500",
+                amount: "RWF 35,000",
                 status: "pending",
               },
               {
                 id: "INV-003",
                 patient: "Mike Johnson",
-                amount: "KES 7,200",
+                amount: "RWF 72,000",
                 status: "partially_paid",
               },
             ].map((invoice) => (
@@ -159,18 +205,49 @@ export default function DashboardPage() {
             Quick Actions
           </h3>
           <div className="space-y-3">
-            <button className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-center">
+            <button 
+              onClick={() => setShowNewInvoiceModal(true)}
+              className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-center"
+            >
               + New Invoice
             </button>
-            <button className="w-full py-3 px-4 border-2 border-primary-600 text-primary-600 hover:text-primary-700 hover:border-primary-700 font-semibold rounded-lg transition-colors">
+            <button 
+              onClick={() => setShowRecordPaymentModal(true)}
+              className="w-full py-3 px-4 border-2 border-primary-600 text-primary-600 hover:text-primary-700 hover:border-primary-700 font-semibold rounded-lg transition-colors"
+            >
               Record Payment
             </button>
-            <button className="w-full py-3 px-4 border-2 border-neutral-200 text-neutral-900 hover:border-neutral-300 font-semibold rounded-lg transition-colors">
+            <button 
+              onClick={() => setShowAddPatientModal(true)}
+              className="w-full py-3 px-4 border-2 border-neutral-200 text-neutral-900 hover:border-neutral-300 font-semibold rounded-lg transition-colors"
+            >
               Add Patient
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <AddPatientModal
+        isOpen={showAddPatientModal}
+        onClose={() => setShowAddPatientModal(false)}
+        onSubmit={handleAddPatient}
+      />
+
+      <NewInvoiceModal
+        isOpen={showNewInvoiceModal}
+        onClose={() => setShowNewInvoiceModal(false)}
+        onSubmit={handleCreateInvoice}
+        patients={mockPatients}
+      />
+
+      <RecordPaymentModal
+        isOpen={showRecordPaymentModal}
+        onClose={() => setShowRecordPaymentModal(false)}
+        onSubmit={handleRecordPayment}
+        invoices={mockInvoices}
+        insurances={mockInsurances}
+      />
     </div>
   );
 }
