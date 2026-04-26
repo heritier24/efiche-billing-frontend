@@ -1,19 +1,22 @@
 /**
- * Authentication Types
+ * Authentication Types - Backend API Integration
  */
 
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
-  role: "admin" | "user" | "finance";
-  avatar?: string;
+  role: "admin" | "cashier" | "staff";
+  avatar?: string | null;
+  created_at?: string;
+  last_login?: string;
 }
 
 export interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  token?: string | null;
 }
 
 export interface LoginCredentials {
@@ -21,15 +24,24 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface LoginResponse {
+  success: boolean;
+  token: string;
+  user: User;
+  expires_in: number;
+}
+
 export interface SignupCredentials {
   name: string;
   email: string;
   password: string;
-  confirmPassword: string;
+  password_confirmation: string;
+  role: "admin" | "cashier" | "staff";
 }
 
 export interface AuthContextType extends AuthState {
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<LoginResponse>;
   signup: (credentials: SignupCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  getCurrentUser: () => Promise<User>;
 }
