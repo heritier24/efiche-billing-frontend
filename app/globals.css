@@ -14,17 +14,17 @@
   --color-neutral-800: #1f2937;
   --color-neutral-900: #111827;
 
-  /* 30% - Primary Brand (Professional Blue) */
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  /* 30% - Primary Brand (Teal/Green - Inspired) */
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
 
   /* 10% - Accent Colors */
   /* Success - Green */
@@ -45,10 +45,10 @@
   --color-error-600: #dc2626;
   --color-error-700: #b91c1c;
 
-  /* Info - Blue (accent variant) */
-  --color-info-50: #eff6ff;
-  --color-info-500: #3b82f6;
-  --color-info-600: #2563eb;
+  /* Info - Teal (accent variant) */
+  --color-info-50: #f0fdfa;
+  --color-info-500: #14b8a6;
+  --color-info-600: #0d9488;
 
   --background: #ffffff;
   --foreground: #1f2937;

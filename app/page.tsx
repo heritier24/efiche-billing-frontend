@@ -135,20 +135,20 @@ export default function Home() {
         <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-12 text-center text-white">
           <h3 className="text-3xl font-bold mb-4">Ready to Get Started?</h3>
           <p className="text-primary-100 mb-8 max-w-2xl mx-auto">
-            View our sample invoices and see how the Efiche billing module can streamline your healthcare operations.
+            Streamline your healthcare billing operations with Efiche - the modern billing solution for Rwanda's healthcare providers.
           </p>
           <div className="flex gap-4 justify-center">
             <Link
-              href="/billing/V001"
+              href="/auth/login"
               className="px-6 py-3 bg-white text-primary-600 font-semibold rounded-lg hover:bg-primary-50 transition-colors"
             >
-              View Invoice V001
+              Get Started Now
             </Link>
             <Link
-              href="/billing/V002"
+              href="/auth/signup"
               className="px-6 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
             >
-              View Invoice V002
+              Create Account
             </Link>
           </div>
         </div>
