@@ -13,10 +13,10 @@ export default function Home() {
             </div>
             <div className="hidden md:block">
               <Link
-                href="/billing/V001"
+                href="/auth/login"
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
               >
-                View Sample Invoice
+                Login to Dashboard
               </Link>
             </div>
           </div>
@@ -38,16 +38,16 @@ export default function Home() {
             </p>
             <div className="flex gap-4">
               <Link
-                href="/billing/V001"
+                href="/auth/login"
                 className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors inline-block"
               >
-                View Sample Invoice
+                Go to Dashboard
               </Link>
               <Link
-                href="/billing/V002"
+                href="/auth/signup"
                 className="px-6 py-3 border-2 border-primary-600 text-primary-600 hover:text-primary-700 hover:border-primary-700 font-semibold rounded-lg transition-colors inline-block"
               >
-                Another Sample
+                Create Account
               </Link>
             </div>
           </div>
