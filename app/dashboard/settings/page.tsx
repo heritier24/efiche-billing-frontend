@@ -4,8 +4,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { userApi } from "@/lib/api/backend";
 
 interface User {
   id: string;
@@ -24,11 +25,39 @@ interface Role {
   permissions: string[];
 }
 
+interface UserFormData {
+  name: string;
+  email: string;
+  password: string;
+  phone: string;
+  department: string;
+  role: string;
+}
+
 export default function DashboardSettingsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Modal states
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [userFormData, setUserFormData] = useState<UserFormData>({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    department: "",
+    role: "Billing Officer",
+  });
+
+  const [roleFormData, setRoleFormData] = useState({
+    name: "",
+    description: "",
+  });
 
   // Mock data (replace with real API calls)
   const [users, setUsers] = useState<User[]>([
@@ -86,38 +115,179 @@ export default function DashboardSettingsPage() {
     { id: "roles", label: "Roles & Permissions", icon: "🔐" },
   ];
 
+  // Profile Update Handler
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Updating profile:", profileData);
-    // TODO: API call to update profile
+    setIsLoading(true);
+    setError("");
+    
+    try {
+      console.log("Updating profile:", profileData);
+      // TODO: API call to update profile
+      // await userApi.update(user?.id, profileData);
+      alert("Profile updated successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to update profile");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddUser = async (userData: any) => {
-    console.log("Adding user:", userData);
-    // TODO: API call to add user
-    const newUser: User = {
-      id: Date.now().toString(),
-      ...userData,
-      isActive: true,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-    setUsers(prev => [...prev, newUser]);
+  // Reset User Form
+  const resetUserForm = () => {
+    setUserFormData({
+      name: "",
+      email: "",
+      password: "",
+      phone: "",
+      department: "",
+      role: "Billing Officer",
+    });
+    setEditingUserId(null);
   };
 
-  const handleToggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, isActive: !u.isActive } : u
-    ));
+  // Open Add User Modal
+  const openAddUserModal = () => {
+    resetUserForm();
+    setShowAddUserModal(true);
   };
 
-  const handleAddRole = async (roleData: any) => {
-    console.log("Adding role:", roleData);
-    // TODO: API call to add role
-    const newRole: Role = {
-      id: Date.now().toString(),
-      ...roleData,
-    };
-    setRoles(prev => [...prev, newRole]);
+  // Open Edit User Modal
+  const openEditUserModal = (userToEdit: User) => {
+    setEditingUserId(userToEdit.id);
+    setUserFormData({
+      name: userToEdit.name,
+      email: userToEdit.email,
+      password: "",
+      phone: "",
+      department: "",
+      role: userToEdit.role,
+    });
+    setShowEditUserModal(true);
+  };
+
+  // Handle Add/Update User
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      if (editingUserId) {
+        // Update existing user
+        console.log("Updating user:", userFormData);
+        // TODO: API call to update user
+        // await userApi.update(editingUserId, userFormData);
+        
+        setUsers(prev =>
+          prev.map(u =>
+            u.id === editingUserId
+              ? {
+                  ...u,
+                  name: userFormData.name,
+                  email: userFormData.email,
+                  role: userFormData.role,
+                }
+              : u
+          )
+        );
+        alert("User updated successfully!");
+        setShowEditUserModal(false);
+      } else {
+        // Create new user
+        console.log("Creating new user:", userFormData);
+        // TODO: API call to create user
+        // await userApi.create(userFormData);
+        
+        const newUser: User = {
+          id: Date.now().toString(),
+          name: userFormData.name,
+          email: userFormData.email,
+          role: userFormData.role,
+          permissions: ["view"],
+          isActive: true,
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        setUsers(prev => [...prev, newUser]);
+        alert("User created successfully!");
+        setShowAddUserModal(false);
+      }
+      resetUserForm();
+    } catch (err: any) {
+      setError(err.message || "Failed to save user");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Delete User
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log("Deleting user:", userId);
+      // TODO: API call to delete user
+      // await userApi.delete(userId);
+      
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      alert("User deleted successfully!");
+    } catch (err: any) {
+      setError(err.message || "Failed to delete user");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Toggle User Status
+  const handleToggleUserStatus = async (userId: string) => {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log("Toggling user status:", userId);
+      // TODO: API call to toggle user status
+      // await userApi.toggleStatus(userId);
+      
+      setUsers(prev =>
+        prev.map(u =>
+          u.id === userId ? { ...u, isActive: !u.isActive } : u
+        )
+      );
+    } catch (err: any) {
+      setError(err.message || "Failed to toggle user status");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Add Role
+  const handleAddRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
+
+    try {
+      console.log("Adding role:", roleFormData);
+      // TODO: API call to add role
+      
+      const newRole: Role = {
+        id: Date.now().toString(),
+        name: roleFormData.name,
+        description: roleFormData.description,
+        permissions: [],
+      };
+      setRoles(prev => [...prev, newRole]);
+      alert("Role created successfully!");
+      setShowAddRoleModal(false);
+      setRoleFormData({ name: "", description: "" });
+    } catch (err: any) {
+      setError(err.message || "Failed to add role");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -126,6 +296,13 @@ export default function DashboardSettingsPage() {
         <h1 className="text-3xl font-bold text-neutral-900 mb-2">Settings</h1>
         <p className="text-neutral-600">Manage your account, users, and system permissions</p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 p-4 bg-error-50 border border-error-200 rounded-lg text-error-700">
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-neutral-200 mb-6">
@@ -201,9 +378,10 @@ export default function DashboardSettingsPage() {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+                disabled={isLoading}
+                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
               >
-                Update Profile
+                {isLoading ? "Updating..." : "Update Profile"}
               </button>
               <button
                 type="button"
@@ -222,7 +400,7 @@ export default function DashboardSettingsPage() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-neutral-900">User Management</h2>
               <button
-                onClick={() => setShowAddUserModal(true)}
+                onClick={openAddUserModal}
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
               >
                 + Add User
@@ -240,30 +418,42 @@ export default function DashboardSettingsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td className="px-4 py-3 font-medium text-neutral-900">{user.name}</td>
-                      <td className="px-4 py-3 text-neutral-600">{user.email}</td>
-                      <td className="px-4 py-3 text-neutral-600">{user.role}</td>
+                  {users.map((userItem) => (
+                    <tr key={userItem.id}>
+                      <td className="px-4 py-3 font-medium text-neutral-900">{userItem.name}</td>
+                      <td className="px-4 py-3 text-neutral-600">{userItem.email}</td>
+                      <td className="px-4 py-3 text-neutral-600">{userItem.role}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                          user.isActive 
+                          userItem.isActive 
                             ? "bg-success-50 text-success-700" 
                             : "bg-neutral-100 text-neutral-600"
                         }`}>
-                          {user.isActive ? "Active" : "Inactive"}
+                          {userItem.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 space-x-2 flex">
                         <button
-                          onClick={() => handleToggleUserStatus(user.id)}
+                          onClick={() => openEditUserModal(userItem)}
+                          className="px-3 py-1 rounded text-xs font-medium bg-primary-100 text-primary-700 hover:bg-primary-200 transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleToggleUserStatus(userItem.id)}
                           className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                            user.isActive
+                            userItem.isActive
                               ? "bg-warning-100 text-warning-700 hover:bg-warning-200"
                               : "bg-success-100 text-success-700 hover:bg-success-200"
                           }`}
                         >
-                          {user.isActive ? "Deactivate" : "Activate"}
+                          {userItem.isActive ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(userItem.id)}
+                          className="px-3 py-1 rounded text-xs font-medium bg-error-100 text-error-700 hover:bg-error-200 transition-colors"
+                        >
+                          Delete
                         </button>
                       </td>
                     </tr>
@@ -317,30 +507,134 @@ export default function DashboardSettingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-4">Add New User</h3>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddUser({}); setShowAddUserModal(false); }} className="space-y-4">
+            {error && (
+              <div className="mb-4 p-3 bg-error-50 border border-error-200 rounded text-error-700 text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleSaveUser} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Name</label>
-                <input type="text" required className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                <input
+                  type="text"
+                  required
+                  value={userFormData.name}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Email</label>
-                <input type="email" required className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                <input
+                  type="email"
+                  required
+                  value={userFormData.email}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={userFormData.password}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
-                <select required className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                  <option value="">Select Role</option>
+                <select
+                  required
+                  value={userFormData.role}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
                   {roles.map(role => (
                     <option key={role.id} value={role.name}>{role.name}</option>
                   ))}
                 </select>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddUserModal(false)} className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium rounded-lg transition-colors">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddUserModal(false); resetUserForm(); }}
+                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium rounded-lg transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                  Add User
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
+                >
+                  {isLoading ? "Creating..." : "Add User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {showEditUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Edit User</h3>
+            {error && (
+              <div className="mb-4 p-3 bg-error-50 border border-error-200 rounded text-error-700 text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  required
+                  value={userFormData.name}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={userFormData.email}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
+                <select
+                  required
+                  value={userFormData.role}
+                  onChange={(e) => setUserFormData(prev => ({ ...prev, role: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  {roles.map(role => (
+                    <option key={role.id} value={role.name}>{role.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => { setShowEditUserModal(false); resetUserForm(); }}
+                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
+                >
+                  {isLoading ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -353,21 +647,46 @@ export default function DashboardSettingsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-neutral-900 mb-4">Add New Role</h3>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddRole({}); setShowAddRoleModal(false); }} className="space-y-4">
+            {error && (
+              <div className="mb-4 p-3 bg-error-50 border border-error-200 rounded text-error-700 text-sm">
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleAddRole} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Role Name</label>
-                <input type="text" required className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                <input
+                  type="text"
+                  required
+                  value={roleFormData.name}
+                  onChange={(e) => setRoleFormData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-neutral-700 mb-1">Description</label>
-                <textarea rows={3} required className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                <textarea
+                  rows={3}
+                  required
+                  value={roleFormData.description}
+                  onChange={(e) => setRoleFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setShowAddRoleModal(false)} className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium rounded-lg transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setShowAddRoleModal(false)}
+                  className="flex-1 px-4 py-2 border border-neutral-300 text-neutral-700 hover:bg-neutral-50 font-medium rounded-lg transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                  Add Role
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
+                >
+                  {isLoading ? "Creating..." : "Add Role"}
                 </button>
               </div>
             </form>

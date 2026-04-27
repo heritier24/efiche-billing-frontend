@@ -5,9 +5,10 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api/backend";
+import PaymentModal from "@/components/dashboard/Payment-form/PaymentModal";
 import NewInvoiceModal from "@/components/dashboard/modals/NewInvoiceModal";
 
 interface Invoice {
@@ -34,6 +35,65 @@ export default function DashboardInvoicesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Ref to store the current filter values to prevent stale closures
+  const filterValuesRef = useRef({
+    searchTerm,
+    statusFilter,
+    currentPage
+  });
+
+  // Update ref when filter values change
+  useEffect(() => {
+    filterValuesRef.current = {
+      searchTerm,
+      statusFilter,
+      currentPage
+    };
+  }, [searchTerm, statusFilter, currentPage]);
+
+  // Stable payment success callback using ref values
+  const handlePaymentSuccess = useCallback((payment: any) => {
+    console.log('Payment processed:', payment);
+    // Refresh invoices to show updated payment status
+    const refreshInvoices = async () => {
+      try {
+        // Use ref values to get current filter state
+        const { searchTerm, statusFilter, currentPage } = filterValuesRef.current;
+        const response = await api.invoices.listInvoices({
+          search: searchTerm || undefined,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          page: currentPage,
+          limit: 20
+        });
+        const transformedInvoices = response.data?.map((invoice: any) => ({
+          id: invoice.id.toString(),
+          patientName: 
+            invoice.patient_name || 
+            invoice.patient?.full_name || 
+            invoice.visit?.patient?.full_name || 
+            `Patient ${invoice.id}` ||
+            'Unknown Patient',
+          visitId: invoice.visit_id?.toString() || '',
+          invoiceDate: invoice.created_at.split('T')[0],
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: invoice.status,
+          totalAmount: invoice.total_amount,
+          amountPaid: invoice.total_paid || 0,
+          remainingBalance: invoice.remaining_balance || 0,
+          lineItemsCount: invoice.line_items?.length || 0,
+          lastPaymentDate: undefined
+        })) || [];
+        setInvoices(transformedInvoices);
+      } catch (error) {
+        console.error('Error refreshing invoices:', error);
+      }
+    };
+    refreshInvoices();
+    setIsPaymentModalOpen(false);
+  }, []); // Empty dependency array - uses ref for current values
 
   useEffect(() => {
     const fetchInvoices = async () => {
@@ -49,22 +109,62 @@ export default function DashboardInvoicesPage() {
         });
         
         // Transform backend data to frontend format
-        const transformedInvoices = response.data.map((invoice) => ({
-          id: invoice.id.toString(),
-          patientName: invoice.visit?.patient?.full_name || 'Unknown Patient',
-          visitId: invoice.visit_id?.toString() || '',
-          invoiceDate: invoice.created_at?.split('T')[0] || '',
-          dueDate: invoice.due_date?.split('T')[0] || '',
-          status: invoice.status as "pending" | "partially_paid" | "paid" | "overdue",
-          totalAmount: invoice.total_amount || 0,
-          amountPaid: invoice.total_paid || 0,
-          remainingBalance: invoice.remaining_balance || 0,
-          lineItemsCount: invoice.line_items?.length || 0,
-          lastPaymentDate: undefined // Not available in BackendInvoice
-        }));
+        console.log('API Response:', response);
+        console.log('Response data:', response.data);
+        console.log('Response data type:', typeof response.data);
+        console.log('Response data is array:', Array.isArray(response.data));
+        console.log('Sample invoice object:', response.data?.[0]);
+        
+        // Handle different response structures from backend
+        let invoicesData = response.data;
+        
+        // If response.data is undefined, check if response itself is an array
+        if (!response.data && Array.isArray(response)) {
+          invoicesData = response;
+          console.log('Using response directly as array');
+        }
+        
+        const transformedInvoices = (invoicesData || [])
+          .map((invoice: any) => {
+            console.log('Raw invoice object:', invoice);
+            console.log('Invoice status:', invoice.status);
+            console.log('Invoice total_amount:', invoice.total_amount);
+            console.log('Invoice patient_responsibility:', invoice.patient_responsibility);
+            console.log('Invoice insurance_coverage:', invoice.insurance_coverage);
+            console.log('Invoice total_paid:', invoice.total_paid);
+            console.log('Invoice remaining_balance:', invoice.remaining_balance);
+            return {
+              id: invoice.id.toString(),
+              patientName: 
+                invoice.patient_name || 
+                invoice.patient?.full_name || 
+                invoice.visit?.patient?.full_name || 
+                `Patient ${invoice.id}` ||
+                'Unknown Patient',
+              visitId: invoice.visit_id?.toString() || '',
+              invoiceDate: invoice.created_at?.split('T')[0] || '',
+              dueDate: invoice.due_date?.split('T')[0] || '',
+              status: invoice.status as "pending" | "partially_paid" | "paid" | "overdue",
+              totalAmount: invoice.total_amount || 0,
+              amountPaid: invoice.total_paid || 0,
+              remainingBalance: invoice.remaining_balance || 0,
+              lineItemsCount: invoice.line_items?.length || 0,
+              lastPaymentDate: undefined, // Not available in BackendInvoice
+              created_at: invoice.created_at // Keep original created_at for sorting
+            };
+          })
+          .sort((a, b) => {
+            // Sort by created_at in descending order (newest first)
+            const dateA = new Date(a.created_at || '1970-01-01');
+            const dateB = new Date(b.created_at || '1970-01-01');
+            return dateB.getTime() - dateA.getTime();
+          });
+        
+        console.log('Transformed invoices:', transformedInvoices);
+        console.log('Setting invoices state with:', transformedInvoices.length, 'invoices');
         
         setInvoices(transformedInvoices);
-        setTotalCount(response.total || 0);
+        setTotalCount(response.total || (Array.isArray(response) ? response.length : 0));
         
       } catch (error) {
         console.error('Error fetching invoices:', error);
@@ -183,20 +283,22 @@ export default function DashboardInvoicesPage() {
     try {
       // Transform frontend data to backend format
       const backendInvoiceData = {
-        visit_id: parseInt(invoiceData.visitId),
-        line_items: invoiceData.lineItems.map((item: any) => ({
-          item_code: item.itemCode,
-          description: item.description,
+        visit_id: parseInt(invoiceData.visitId), // Use the selected visit ID (real database ID)
+        line_items: invoiceData.lineItems.map((item: any, index: number) => ({
+          item_code: item.name.replace(/\s+/g, '_').toUpperCase(), // Generate item code from name
+          description: item.description || item.name,
           quantity: item.quantity,
           unit_price: item.unitPrice
         })),
-        insurance_id: invoiceData.insuranceId ? parseInt(invoiceData.insuranceId) : undefined,
-        due_date: invoiceData.dueDate
+        insurance_id: undefined, // Not selected in modal currently
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 7 days from now
       };
 
+      console.log('Sending invoice data with real visit ID:', backendInvoiceData);
       await api.invoices.createInvoice(backendInvoiceData);
       
       // Refresh invoices list by triggering the useEffect
+      window.location.reload(); // Simple refresh to show new invoice
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error('Error creating invoice:', error);
@@ -256,15 +358,15 @@ export default function DashboardInvoicesPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "paid":
-        return "bg-success-50 text-success-700 border border-success-200";
+        return "bg-success-50 text-success-700 border border-success-200 font-semibold";
       case "partially_paid":
-        return "bg-warning-50 text-warning-700 border border-warning-200";
+        return "bg-warning-50 text-warning-700 border border-warning-200 font-semibold";
       case "pending":
-        return "bg-info-50 text-info-700 border border-info-200";
+        return "bg-info-50 text-info-700 border border-info-200 font-semibold";
       case "overdue":
-        return "bg-error-50 text-error-700 border border-error-200";
+        return "bg-error-50 text-error-700 border border-error-200 font-semibold";
       default:
-        return "bg-neutral-50 text-neutral-700 border border-neutral-200";
+        return "bg-neutral-50 text-neutral-700 border border-neutral-200 font-semibold";
     }
   };
 
@@ -313,14 +415,33 @@ export default function DashboardInvoicesPage() {
   const pendingAmount = invoices.filter(inv => inv.status === "pending" || inv.status === "overdue")
                               .reduce((sum, inv) => sum + inv.remainingBalance, 0);
 
-  // Mock patients for invoice creation
-  const mockPatients = [
-    { id: "1", name: "John Doe" },
-    { id: "2", name: "Jane Smith" },
-    { id: "3", name: "Robert Mugisha" },
-    { id: "4", name: "Grace Uwimana" },
-    { id: "5", name: "Eric Niyonzima" }
-  ];
+  // Get real patients for invoice creation
+  const [availablePatients, setAvailablePatients] = useState<Array<{ id: string; name: string }>>([]);
+  
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const response = await api.patients.listPatients({ limit: 100 }); // Get all patients
+        const patients = (response.data || []).map(patient => ({
+          id: patient.id.toString(),
+          name: `${patient.first_name} ${patient.last_name}`
+        }));
+        setAvailablePatients(patients);
+      } catch (error) {
+        console.error('Error fetching patients for invoice creation:', error);
+        // Use mock patients as fallback
+        setAvailablePatients([
+          { id: "1", name: "John Doe" },
+          { id: "2", name: "Jane Smith" },
+          { id: "3", name: "Robert Mugisha" },
+          { id: "4", name: "Grace Uwimana" },
+          { id: "5", name: "Eric Niyonzima" }
+        ]);
+      }
+    };
+    
+    fetchPatients();
+  }, []);
 
   return (
     <div className="p-6">
@@ -584,7 +705,7 @@ export default function DashboardInvoicesPage() {
                     RWF {invoice.amountPaid.toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-right font-medium">
-                    <span className={invoice.remainingBalance > 0 ? "text-warning-600" : "text-success-600"}>
+                    <span className={invoice.remainingBalance > 0 ? "text-warning-600 font-semibold" : "text-success-600 font-semibold"}>
                       RWF {invoice.remainingBalance.toLocaleString()}
                     </span>
                   </td>
@@ -596,14 +717,15 @@ export default function DashboardInvoicesPage() {
                       >
                         View
                       </Link>
-                      {invoice.remainingBalance > 0 && (
-                        <Link
-                          href={`/billing/${invoice.visitId}`}
-                          className="text-success-600 hover:text-success-700 font-medium text-sm"
-                        >
-                          Pay
-                        </Link>
-                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedInvoice(invoice);
+                          setIsPaymentModalOpen(true);
+                        }}
+                        className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-sm font-medium"
+                      >
+                        Process Payment
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -614,12 +736,21 @@ export default function DashboardInvoicesPage() {
         )}
       </div>
 
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen && !!selectedInvoice}
+        invoiceId={parseInt(selectedInvoice?.id || '0')}
+        remainingBalance={selectedInvoice?.remainingBalance}
+        onPaymentSuccess={handlePaymentSuccess}
+        onClose={() => setIsPaymentModalOpen(false)}
+      />
+
       {/* New Invoice Modal */}
       <NewInvoiceModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSubmit={handleCreateInvoice}
-        patients={mockPatients}
+        patients={availablePatients}
       />
     </div>
   );

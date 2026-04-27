@@ -6,11 +6,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Invoice, Insurance, PaymentMethod, PaymentRequest } from "@/lib/types";
+import { BackendInvoice, BackendInsurance, PaymentMethod, PaymentRequest } from "@/lib/types";
 
 interface PaymentFormProps {
-  invoice: Invoice;
-  insurances: Insurance[];
+  invoice: BackendInvoice;
+  insurances: BackendInsurance[];
   onSubmit: (data: PaymentRequest) => void;
   isLoading: boolean;
   isWaitingForConfirmation: boolean;
@@ -40,7 +40,7 @@ export default function EnhancedPaymentForm({
   errorMessage,
 }: PaymentFormProps) {
   const [formData, setFormData] = useState({
-    amount: invoice.remainingBalance.toString(),
+    amount: invoice.remaining_balance?.toString() || "0",
     method: "cash" as PaymentMethod,
     insuranceId: "",
     phone: "",
@@ -63,8 +63,8 @@ export default function EnhancedPaymentForm({
     // Amount validation
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       newErrors.amount = "Amount must be greater than 0";
-    } else if (parseFloat(formData.amount) > invoice.remainingBalance) {
-      newErrors.amount = `Amount cannot exceed remaining balance (RWF ${invoice.remainingBalance.toLocaleString()})`;
+    } else if (parseFloat(formData.amount) > (invoice.remaining_balance || 0)) {
+      newErrors.amount = `Amount cannot exceed remaining balance (RWF ${(invoice.remaining_balance || 0).toLocaleString()})`;
     }
 
     // Method validation
@@ -109,10 +109,10 @@ export default function EnhancedPaymentForm({
       const amount = parseFloat(formData.amount);
       if (amount <= 0) {
         setErrors(prev => ({ ...prev, amount: "Amount must be greater than 0" }));
-      } else if (amount > invoice.remainingBalance) {
+      } else if (amount > (invoice.remaining_balance || 0)) {
         setErrors(prev => ({ 
           ...prev, 
-          amount: `Amount cannot exceed remaining balance (RWF ${invoice.remainingBalance.toLocaleString()})` 
+          amount: `Amount cannot exceed remaining balance (RWF ${(invoice.remaining_balance || 0).toLocaleString()})` 
         }));
       } else {
         setErrors(prev => ({ ...prev, amount: undefined }));
@@ -229,14 +229,14 @@ export default function EnhancedPaymentForm({
               placeholder="0.00"
               step="0.01"
               min="0"
-              max={invoice.remainingBalance}
+              max={invoice.remaining_balance || 0}
             />
           </div>
           {errors.amount && touched.amount && (
             <p className="mt-1 text-sm text-error-600">{errors.amount}</p>
           )}
           <p className="mt-1 text-sm text-neutral-500">
-            Remaining balance: RWF {invoice.remainingBalance.toLocaleString()}
+            Remaining balance: RWF {(invoice.remaining_balance || 0).toLocaleString()}
           </p>
         </div>
 

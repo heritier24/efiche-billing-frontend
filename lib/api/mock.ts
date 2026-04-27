@@ -3,7 +3,7 @@
  * Updated to use comprehensive backend API with fallback to mock
  */
 
-import { Invoice, Insurance, Payment } from "@/lib/types";
+import { Invoice, Insurance, Payment, PaymentStatus } from "@/lib/types";
 import { api, formatCurrency, formatDateTime } from "@/lib/api/backend";
 
 /**
@@ -148,14 +148,14 @@ export async function processPayment(
     
     // Transform backend response to frontend format
     return {
-      id: data.id.toString(),
-      invoiceId: data.invoice_id.toString(),
-      amount: data.amount,
-      method: data.method,
-      status: data.status,
-      timestamp: data.processed_at,
-      confirmationCode: data.transaction_ref,
-      insuranceId: data.method === 'insurance' ? undefined : undefined,
+      id: data.data?.id.toString(),
+      invoiceId: data.data?.invoice_id.toString(),
+      amount: data.data?.amount,
+      method: data.data?.method,
+      status: data.data?.status as PaymentStatus,
+      timestamp: data.data?.created_at,
+      confirmationCode: data.data?.transaction_ref,
+      insuranceId: data.data?.method === 'insurance' ? undefined : undefined,
     };
   } catch (error) {
     console.error('Error processing payment:', error);
@@ -227,7 +227,7 @@ export async function getDashboardStats() {
 export async function getPaymentStats() {
   try {
     // This endpoint doesn't exist in the backend API docs, using payments list instead
-    const payments = await api.payments.listPayments({ limit: 100 });
+    const payments = await api.payments.getAllPayments({ limit: 100 });
     
     // Calculate stats from payments data
     const totalPayments = payments.total;
@@ -264,9 +264,9 @@ export async function getTopPatients() {
     return patients.data.map(patient => ({
       patient_id: patient.id,
       full_name: `${patient.first_name} ${patient.last_name}`,
-      phone: patient.phone,
-      total_paid: patient.total_paid,
-      payment_count: patient.total_visits, // Approximate payment count
+      phone: patient.phone || '',
+      total_paid: 0, // Not available in backend Patient type
+      payment_count: 0, // Not available in backend Patient type
     }));
   } catch (error) {
     console.error('Error fetching top patients:', error);

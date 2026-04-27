@@ -60,10 +60,25 @@ export interface PaginatedResponse<T> {
 export interface DashboardStats {
   total_invoices: number;
   total_revenue: number;
-  pending_payments: number;
-  total_patients: number;
-  today_visits: number;
-  monthly_growth: number;
+  pending_invoices: number;
+  active_patients: number;
+  monthly_stats: {
+    current_month: {
+      invoices: number;
+      revenue: number;
+      patients: number;
+    };
+    previous_month: {
+      invoices: number;
+      revenue: number;
+      patients: number;
+    };
+  };
+  payment_methods_breakdown: {
+    cash: number;
+    mobile_money: number;
+    insurance: number;
+  };
 }
 
 export interface RecentInvoice {
@@ -74,6 +89,37 @@ export interface RecentInvoice {
   status: InvoiceStatus;
   created_at: string;
   due_date: string;
+}
+
+export interface ActivePatients {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  phone: string;
+  last_visit: string;
+}
+
+export interface RevenueSummary {
+  total_revenue: number;
+  growth_rate: number;
+  breakdown: {
+    cash: number;
+    mobile_money: number;
+    insurance: number;
+  };
+}
+
+export interface MonthlyRevenue {
+  month: string;
+  revenue: number;
+  growth: number;
+}
+
+export interface MonthlyRevenueResponse {
+  data: MonthlyRevenue[];
+  total_revenue: number;
+  growth_rate: number;
 }
 
 export interface UpcomingPayment {
@@ -104,23 +150,52 @@ export interface Patient {
   id: number;
   first_name: string;
   last_name: string;
+  full_name: string;
   email: string;
   phone: string;
   date_of_birth: string;
   gender: Gender;
   address: string;
-  registration_date: string;
-  last_visit_date?: string;
-  total_visits: number;
-  total_billed: number;
-  total_paid: number;
-  outstanding_balance: number;
-  status: PatientStatus;
-  insurance_name?: string;
+  emergency_contact: string;
+  emergency_phone: string;
+  insurance_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BackendPatient {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email?: string;
+  phone?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
+  insurance_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePatientRequest {
+  first_name: string;
+  last_name: string;
+  email?: string;
+  phone?: string;
+  date_of_birth?: string;
+  gender?: string;
+  address?: string;
+  emergency_contact?: string;
+  emergency_phone?: string;
+  insurance_id?: number;
 }
 
 export interface PatientVisit {
   id: number;
+  patient_id: number;
   visit_date: string;
   visit_type: string;
   status: string;
@@ -130,15 +205,6 @@ export interface PatientVisit {
   paid_amount?: number;
 }
 
-export interface CreatePatientRequest {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  date_of_birth: string;
-  gender: Gender;
-  address: string;
-}
 
 // Invoice Types
 export interface BackendLineItem {
@@ -185,16 +251,22 @@ export interface BackendPayment {
   amount: number;
   method: PaymentMethod;
   status: PaymentStatus;
-  transaction_ref: string;
-  processed_at: string;
+  transaction_ref?: string;
+  phone?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
   confirmed_at?: string;
   cashier_id?: number;
-  notes?: string;
-  invoice: {
-    id: number;
-    invoice_number: string;
-    patient_name: string;
-  };
+}
+
+// Payment Response Type (for backend API responses)
+export interface PaymentResponse {
+  success: boolean;
+  message: string;
+  data: BackendPayment;
+  invoice_status?: string;
+  remaining_balance?: number;
 }
 
 export interface PaymentRequest {

@@ -4,10 +4,10 @@
  * Estate Rwanda Design - 60-30-10 Color Scheme
  */
 
-import { Invoice } from "@/lib/types";
+import { BackendInvoice } from "@/lib/types";
 
 interface InvoiceSummaryProps {
-  invoice: Invoice;
+  invoice: BackendInvoice;
 }
 
 export default function InvoiceSummary({ invoice }: InvoiceSummaryProps) {
@@ -42,20 +42,20 @@ export default function InvoiceSummary({ invoice }: InvoiceSummaryProps) {
 
           <div className="border-b border-neutral-200 pb-4">
             <p className="text-sm font-medium text-neutral-600 mb-1">Visit ID</p>
-            <p className="text-base font-medium text-neutral-700">{invoice.visitId}</p>
+            <p className="text-base font-medium text-neutral-700">{invoice.visit_id}</p>
           </div>
 
           <div className="border-b border-neutral-200 pb-4">
             <p className="text-sm font-medium text-neutral-600 mb-1">Patient Name</p>
             <p className="text-base font-medium text-neutral-700">
-              {invoice.patientName}
+              {invoice.visit?.patient?.full_name || 'Unknown Patient'}
             </p>
           </div>
 
           <div>
             <p className="text-sm font-medium text-neutral-600 mb-1">Date</p>
             <p className="text-base font-medium text-neutral-700">
-              {new Date(invoice.invoiceDate).toLocaleDateString()}
+              {new Date(invoice.created_at?.split('T')[0] || new Date()).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -73,21 +73,21 @@ export default function InvoiceSummary({ invoice }: InvoiceSummaryProps) {
             <div className="flex items-center justify-between">
               <p className="text-sm text-neutral-600">Total Amount</p>
               <p className="text-lg font-bold text-neutral-900">
-                RWF {invoice.totalAmount.toLocaleString()}
+                RWF {(invoice.total_amount || 0).toLocaleString()}
               </p>
             </div>
 
             <div className="border-t border-neutral-200 pt-3 flex items-center justify-between">
               <p className="text-sm text-neutral-600">Amount Paid</p>
               <p className="text-base font-semibold text-success-600">
-                RWF {invoice.amountPaid.toLocaleString()}
+                RWF {(invoice.total_paid || 0).toLocaleString()}
               </p>
             </div>
 
             <div className="border-t border-neutral-200 pt-3 flex items-center justify-between bg-error-50 -m-4 p-4 rounded-md">
               <p className="text-sm font-semibold text-neutral-900">Remaining Balance</p>
               <p className="text-xl font-bold text-error-600">
-                RWF {invoice.remainingBalance.toLocaleString()}
+                RWF {(invoice.remaining_balance || 0).toLocaleString()}
               </p>
             </div>
           </div>

@@ -104,7 +104,7 @@ export default function SignupPage() {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-base font-medium text-neutral-900 placeholder-neutral-500"
                 placeholder="John Doe"
                 required
               />
@@ -125,7 +125,7 @@ export default function SignupPage() {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-base font-medium text-neutral-900 placeholder-neutral-500"
                 placeholder="you@example.com"
                 required
               />
@@ -146,7 +146,7 @@ export default function SignupPage() {
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-base font-medium text-neutral-900 placeholder-neutral-500"
                 placeholder="••••••••"
                 required
               />
@@ -167,7 +167,7 @@ export default function SignupPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 disabled={isLoading}
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-neutral-900"
+                className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-neutral-100 text-base font-medium text-neutral-900 placeholder-neutral-500"
                 placeholder="••••••••"
                 required
               />

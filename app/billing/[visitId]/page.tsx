@@ -8,22 +8,18 @@ import PaymentForm from "@/components/billing/EnhancedPaymentForm";
 import LoadingSkeleton from "@/components/billing/LoadingSkeleton";
 import EmptyState from "@/components/billing/EmptyState";
 import { Invoice, Insurance, PaymentFormData, Payment, PaymentRequest } from "@/lib/types";
-import {
-  getInvoice,
-  getInsurances,
-  processPayment,
-  checkMobileMoneyStatus,
-} from "@/lib/api/mock";
+import { api } from "@/lib/api/backend";
+import { BackendInvoice, BackendInsurance, BackendPayment } from "@/lib/types";
 
 interface BillingPageState {
-  invoice: Invoice | null;
-  insurances: Insurance[];
+  invoice: BackendInvoice | null;
+  insurances: BackendInsurance[];
   isLoading: boolean;
   isProcessingPayment: boolean;
   isWaitingForConfirmation: boolean;
   errorMessage: string | null;
   successMessage: string | null;
-  currentPaymentId: string | null;
+  currentPaymentId: number | null;
 }
 
 export default function BillingPage() {
@@ -54,14 +50,14 @@ export default function BillingPage() {
         setState((prev) => ({ ...prev, isLoading: true, errorMessage: null }));
 
         const [invoiceData, insurancesData] = await Promise.all([
-          getInvoice(visitId),
-          getInsurances(),
+          api.invoices.getInvoiceByVisit(visitId),
+          api.facilities.getInsurances(1), // Default facility ID - should be dynamic
         ]);
 
         setState((prev) => ({
           ...prev,
           invoice: invoiceData,
-          insurances: insurancesData,
+          insurances: insurancesData.data || [],
           isLoading: false,
         }));
       } catch (error) {
@@ -92,7 +88,7 @@ export default function BillingPage() {
         const paymentId = state.currentPaymentId;
         if (!paymentId) return;
 
-        const result = await checkMobileMoneyStatus(paymentId);
+        const result = await api.payments.getPaymentStatus(paymentId);
 
         if (result.status === "confirmed") {
           // Payment confirmed
@@ -100,11 +96,11 @@ export default function BillingPage() {
           setState((prev) => ({
             ...prev,
             isWaitingForConfirmation: false,
-            successMessage: `Payment confirmed! Confirmation code: ${result.confirmationCode}`,
+            successMessage: `Payment confirmed! Transaction ref: ${result.transaction_ref}`,
           }));
 
           // Refresh invoice data
-          const updatedInvoice = await getInvoice(visitId);
+          const updatedInvoice = await api.invoices.getInvoiceByVisit(visitId);
           setState((prev) => ({
             ...prev,
             invoice: updatedInvoice,
@@ -171,7 +167,7 @@ export default function BillingPage() {
         successMessage: null,
       }));
 
-      const payment = await processPayment(state.invoice.id, paymentRequestData);
+      const payment = await api.payments.processPayment(state.invoice.id, paymentRequestData);
 
       // Payment was successful
       if (payment) {
@@ -181,7 +177,7 @@ export default function BillingPage() {
             ...prev,
             isProcessingPayment: false,
             isWaitingForConfirmation: true,
-            currentPaymentId: payment.id,
+            currentPaymentId: payment.data?.id,
             successMessage: "Payment initiated. Waiting for provider confirmation...",
           }));
         } else {
@@ -193,7 +189,7 @@ export default function BillingPage() {
           }));
 
           // Refresh invoice
-          const updatedInvoice = await getInvoice(visitId);
+          const updatedInvoice = await api.invoices.getInvoiceByVisit(visitId);
           setState((prev) => ({
             ...prev,
             invoice: updatedInvoice,
@@ -284,7 +280,7 @@ export default function BillingPage() {
         <InvoiceSummary invoice={state.invoice} />
 
         {/* Line Items */}
-        <LineItemsList items={state.invoice.lineItems} />
+        <LineItemsList items={state.invoice.line_items || []} />
 
         {/* Payment Form */}
         <PaymentForm

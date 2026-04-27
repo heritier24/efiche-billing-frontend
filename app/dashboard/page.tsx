@@ -6,8 +6,9 @@
 
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useState, useEffect } from "react";
-import { AddPatientModal, NewInvoiceModal, RecordPaymentModal } from "@/components/dashboard/modals";
-import { getDashboardStats, getInsurances } from "@/lib/api/mock";
+import { AddPatientModal, NewInvoiceModal } from "@/components/dashboard/modals";
+import DashboardRecordPaymentModal from "@/components/dashboard/modals/DashboardRecordPaymentModal";
+import { api } from "@/lib/api/backend";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -17,7 +18,18 @@ export default function DashboardPage() {
   const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
   const [showRecordPaymentModal, setShowRecordPaymentModal] = useState(false);
 
-  // Dynamic data states
+  // Format revenue numbers for better display
+const formatRevenue = (revenue: number): string => {
+  if (revenue >= 1000000) {
+    return `RWF ${(revenue / 1000000).toFixed(1)}M`;
+  } else if (revenue >= 1000) {
+    return `RWF ${(revenue / 1000).toFixed(1)}K`;
+  } else {
+    return `RWF ${revenue.toLocaleString()}`;
+  }
+};
+
+// Dynamic data states
   const [patients, setPatients] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [insurances, setInsurances] = useState<any[]>([]);
@@ -30,20 +42,113 @@ export default function DashboardPage() {
       try {
         setIsLoadingData(true);
         
-        // Fetch dashboard statistics
-        const stats = await getDashboardStats();
-        setDashboardStats(stats);
+        // Fetch main dashboard statistics
+        try {
+          const stats = await api.dashboard.getStats();
+          console.log('Dashboard stats from API:', stats);
+          setDashboardStats(stats);
+        } catch (error) {
+          console.error('Error fetching dashboard stats:', error);
+          
+          // Fallback: Calculate revenue from payments if dashboard stats fail
+          try {
+            const paymentsResponse = await api.payments.getAllPayments({ limit: 1000 });
+            const completedPayments = paymentsResponse.data?.filter((p: any) => 
+              p.status === 'completed' || p.status === 'confirmed'
+            ) || [];
+            const calculatedRevenue = completedPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+            
+            console.log('Calculated revenue from payments:', calculatedRevenue);
+            
+            setDashboardStats({
+              total_invoices: paymentsResponse.data?.length || 0,
+              total_revenue: calculatedRevenue,
+              pending_invoices: paymentsResponse.data?.filter((p: any) => p.status === 'pending').length || 0,
+              active_patients: 0, // Will be fetched separately
+              monthly_stats: {
+                current_month: { invoices: 0, revenue: calculatedRevenue, patients: 0 },
+                previous_month: { invoices: 0, revenue: 0, patients: 0 }
+              },
+              payment_methods_breakdown: {
+                cash: completedPayments.filter((p: any) => p.method === 'cash').length,
+                mobile_money: completedPayments.filter((p: any) => p.method === 'mobile_money').length,
+                insurance: completedPayments.filter((p: any) => p.method === 'insurance').length
+              }
+            });
+          } catch (paymentsError) {
+            console.error('Error fetching payments for fallback:', paymentsError);
+            // Set fallback values
+            setDashboardStats({
+              total_invoices: 0,
+              total_revenue: 0,
+              pending_invoices: 0,
+              active_patients: 0,
+              monthly_stats: {
+                current_month: { invoices: 0, revenue: 0, patients: 0 },
+                previous_month: { invoices: 0, revenue: 0, patients: 0 }
+              },
+              payment_methods_breakdown: {
+                cash: 0,
+                mobile_money: 0,
+                insurance: 0
+              }
+            });
+          }
+        }
 
         // Fetch insurances for modals
-        const insuranceData = await getInsurances();
-        setInsurances(insuranceData);
+        try {
+          const insuranceResponse = await api.facilities.getInsurances(1); // Default facility ID
+          setInsurances(insuranceResponse.data || []);
+        } catch (error) {
+          console.error('Error fetching insurances:', error);
+          setInsurances([]);
+        }
 
-        // TODO: Fetch patients and invoices when APIs are available
-        // const patientsData = await getPatients();
-        // setPatients(patientsData);
-        
-        // const invoicesData = await getRecentInvoices();
-        // setInvoices(invoicesData);
+        // Fetch recent invoices using dedicated dashboard endpoint
+        try {
+          const recentInvoicesResponse = await api.dashboard.getRecentInvoices({ limit: 5 });
+          
+          // Debug: Log the actual backend response structure
+          console.log('Recent invoices response:', recentInvoicesResponse);
+          if (recentInvoicesResponse.data && recentInvoicesResponse.data.length > 0) {
+            console.log('Sample invoice structure:', recentInvoicesResponse.data[0]);
+          }
+          
+          const transformedInvoices = (recentInvoicesResponse.data || []).map((invoice: any) => {
+            // Try different field names for patient name, using any type to handle backend response variations
+            const patientName = 
+              invoice.patient_name || 
+              invoice.patient?.full_name || 
+              invoice.visit?.patient?.full_name || 
+              `Patient ${invoice.id}` ||
+              'Unknown Patient';
+            
+            return {
+              id: invoice.id.toString(),
+              patientName: patientName,
+              totalAmount: invoice.total_amount || 0,
+              status: invoice.status,
+            };
+          });
+          setInvoices(transformedInvoices);
+        } catch (error) {
+          console.error('Error fetching recent invoices:', error);
+          setInvoices([]);
+        }
+
+        // Fetch patients for modal
+        try {
+          const patientsResponse = await api.patients.listPatients({ limit: 50 });
+          const transformedPatients = (patientsResponse.data || []).map((patient) => ({
+            id: patient.id.toString(),
+            name: `${patient.first_name} ${patient.last_name}`,
+          }));
+          setPatients(transformedPatients);
+        } catch (error) {
+          console.error('Error fetching patients:', error);
+          setPatients([]);
+        }
         
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -57,24 +162,78 @@ export default function DashboardPage() {
 
   // Modal handlers
   const handleAddPatient = async (patientData: any) => {
-    console.log("Adding patient:", patientData);
-    // TODO: API call to add patient
-    // For now, just simulate success
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      console.log("Adding patient:", patientData);
+      // Transform frontend data to backend format
+      const backendPatientData = {
+        first_name: patientData.first_name,
+        last_name: patientData.last_name,
+        email: patientData.email,
+        phone: patientData.phone,
+        date_of_birth: patientData.date_of_birth,
+        gender: patientData.gender,
+        address: patientData.address,
+        insurance_id: patientData.insurance_id ? parseInt(patientData.insurance_id) : undefined,
+      };
+
+      await api.patients.createPatient(backendPatientData);
+      
+      // Refresh patients list
+      const patientsResponse = await api.patients.listPatients({ limit: 50 });
+      const transformedPatients = (patientsResponse.data || []).map((patient) => ({
+        id: patient.id.toString(),
+        name: `${patient.first_name} ${patient.last_name}`,
+      }));
+      setPatients(transformedPatients);
+      
+      setShowAddPatientModal(false);
+    } catch (error) {
+      console.error('Error adding patient:', error);
+      alert('Failed to add patient. Please try again.');
+    }
   };
 
   const handleCreateInvoice = async (invoiceData: any) => {
-    console.log("Creating invoice:", invoiceData);
-    // TODO: API call to create invoice
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      console.log("Creating invoice:", invoiceData);
+      // Transform frontend data to backend format
+      const backendInvoiceData = {
+        visit_id: parseInt(invoiceData.visitId),
+        line_items: invoiceData.lineItems.map((item: any) => ({
+          item_code: item.name.replace(/\s+/g, '_').toUpperCase(),
+          description: item.description || item.name,
+          quantity: item.quantity,
+          unit_price: item.unitPrice
+        })),
+        insurance_id: invoiceData.insuranceId ? parseInt(invoiceData.insuranceId) : undefined,
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      };
+
+      await api.invoices.createInvoice(backendInvoiceData);
+      
+      // Refresh invoices list
+      const invoicesResponse = await api.invoices.listInvoices({ limit: 5 });
+      const transformedInvoices = (invoicesResponse.data || []).map((invoice: any) => ({
+        id: invoice.id.toString(),
+        patientName: 
+          invoice.patient_name || 
+          invoice.patient?.full_name || 
+          invoice.visit?.patient?.full_name || 
+          `Patient ${invoice.id}` ||
+          'Unknown Patient',
+        totalAmount: invoice.total_amount || 0,
+        status: invoice.status,
+      }));
+      setInvoices(transformedInvoices);
+      
+      setShowNewInvoiceModal(false);
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      alert('Failed to create invoice. Please try again.');
+    }
   };
 
-  const handleRecordPayment = async (paymentData: any) => {
-    console.log("Recording payment:", paymentData);
-    // TODO: API call to record payment
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  };
-
+  
   // Dynamic stats based on API data
   const stats = dashboardStats ? [
     {
@@ -86,7 +245,7 @@ export default function DashboardPage() {
     },
     {
       title: "Total Revenue",
-      value: `RWF ${(dashboardStats.total_revenue / 1000000).toFixed(1)}M`,
+      value: formatRevenue(dashboardStats.total_revenue || 0),
       change: "+8%",
       icon: "💰",
       color: "success",
@@ -100,7 +259,7 @@ export default function DashboardPage() {
     },
     {
       title: "Active Patients",
-      value: "156", // TODO: Add to API when available
+      value: patients.length?.toString() || "0",
       change: "+20%",
       icon: "👥",
       color: "info",
@@ -276,12 +435,13 @@ export default function DashboardPage() {
         patients={patients}
       />
 
-      <RecordPaymentModal
+      <DashboardRecordPaymentModal
         isOpen={showRecordPaymentModal}
         onClose={() => setShowRecordPaymentModal(false)}
-        onSubmit={handleRecordPayment}
-        invoices={invoices}
-        insurances={insurances}
+        onSuccess={() => {
+          // Refresh dashboard data after successful payment
+          window.location.reload();
+        }}
       />
     </div>
   );

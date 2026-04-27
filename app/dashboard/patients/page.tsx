@@ -64,14 +64,14 @@ export default function DashboardPatientsPage() {
           gender: patient.gender as "male" | "female" | "other",
           address: patient.address || "",
           insuranceId: undefined, // Not available in backend Patient type
-          insuranceName: patient.insurance_name || "",
-          registrationDate: patient.registration_date?.split('T')[0] || "",
-          lastVisitDate: patient.last_visit_date,
-          totalVisits: patient.total_visits || 0,
-          totalBilled: patient.total_billed || 0,
-          totalPaid: patient.total_paid || 0,
-          outstandingBalance: patient.outstanding_balance || 0,
-          status: patient.status as "active" | "inactive"
+          insuranceName: "", // Not available in backend Patient type
+          registrationDate: patient.created_at?.split('T')[0] || "",
+          lastVisitDate: "", // Not available in backend Patient type
+          totalVisits: 0, // Not available in backend Patient type
+          totalBilled: 0, // Not available in backend Patient type
+          totalPaid: 0, // Not available in backend Patient type
+          outstandingBalance: 0, // Not available in backend Patient type
+          status: "active" as "active" | "inactive" // Default status
         }));
         
         setPatients(transformedPatients);

@@ -4,10 +4,10 @@
  * Estate Rwanda Design - 60-30-10 Color Scheme
  */
 
-import { LineItem } from "@/lib/types";
+import { BackendLineItem } from "@/lib/types";
 
 interface LineItemsListProps {
-  items: LineItem[];
+  items: BackendLineItem[];
 }
 
 export default function LineItemsList({ items }: LineItemsListProps) {
@@ -50,21 +50,19 @@ export default function LineItemsList({ items }: LineItemsListProps) {
             {items.map((item) => (
               <tr key={item.id} className="hover:bg-neutral-50">
                 <td className="px-6 py-4">
-                  <p className="font-semibold text-neutral-900">{item.name}</p>
-                  {item.description && (
-                    <p className="text-sm text-neutral-600 mt-1">
-                      {item.description}
-                    </p>
-                  )}
+                  <p className="font-semibold text-neutral-900">{item.description}</p>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    {item.item_code}
+                  </p>
                 </td>
                 <td className="px-6 py-4 text-right text-neutral-700">
                   {item.quantity}
                 </td>
                 <td className="px-6 py-4 text-right text-neutral-700">
-                  RWF {item.unitPrice.toLocaleString()}
+                  RWF {item.unit_price.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-right font-semibold text-primary-600">
-                  RWF {item.totalPrice.toLocaleString()}
+                  RWF {(item.unit_price * item.quantity).toLocaleString()}
                 </td>
               </tr>
             ))}
@@ -77,20 +75,18 @@ export default function LineItemsList({ items }: LineItemsListProps) {
         <div className="divide-y divide-neutral-200">
           {items.map((item) => (
             <div key={item.id} className="px-6 py-4">
-              <p className="font-semibold text-neutral-900 mb-1">{item.name}</p>
-              {item.description && (
-                <p className="text-sm text-neutral-600 mb-3">{item.description}</p>
-              )}
+              <p className="font-semibold text-neutral-900 mb-1">{item.description}</p>
+              <p className="text-sm text-neutral-600 mb-3">{item.item_code}</p>
               <div className="flex justify-between text-sm mb-2 text-neutral-700">
                 <span>Qty: {item.quantity} x</span>
                 <span className="font-medium">
-                  RWF {item.unitPrice.toLocaleString()}
+                  RWF {item.unit_price.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span className="text-neutral-900">Total:</span>
                 <span className="text-primary-600">
-                  RWF {item.totalPrice.toLocaleString()}
+                  RWF {(item.unit_price * item.quantity).toLocaleString()}
                 </span>
               </div>
             </div>

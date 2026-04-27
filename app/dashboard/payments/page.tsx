@@ -7,10 +7,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api/backend";
+import DashboardRecordPaymentModal from "@/components/dashboard/modals/DashboardRecordPaymentModal";
 
 interface Payment {
   id: string;
   invoiceId: string;
+  invoiceNumber: string;
   patientName: string;
   amount: number;
   method: "cash" | "mobile_money" | "insurance";
@@ -21,6 +24,19 @@ interface Payment {
   confirmationCode?: string;
   processedBy: string;
   notes?: string;
+  // Enhanced fields from backend
+  patient?: {
+    id: number;
+    full_name: string;
+    first_name: string;
+    last_name: string;
+  };
+  invoice?: {
+    id: number;
+    invoice_number: string;
+    total_amount: number;
+    status: string;
+  };
 }
 
 export default function DashboardPaymentsPage() {
@@ -33,6 +49,46 @@ export default function DashboardPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [isRecordPaymentModalOpen, setIsRecordPaymentModalOpen] = useState(false);
+  const [paymentStats, setPaymentStats] = useState<any>(null);
+
+  // Handle payment success
+  const handlePaymentSuccess = (payment: any) => {
+    console.log('Payment recorded:', payment);
+    // Refresh payments list
+    const fetchPayments = async () => {
+      try {
+        const response = await api.payments.getAllPayments({
+          search: searchTerm || undefined,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          page: currentPage,
+          limit: 20
+        });
+        
+        const transformedPayments = (response.data || []).map((payment) => ({
+          id: payment.id.toString(),
+          invoiceId: payment.invoice_id?.toString() || '',
+          invoiceNumber: `INV-${payment.invoice_id}`,
+          patientName: 'Unknown Patient', 
+          amount: payment.amount || 0,
+          method: payment.method as "cash" | "mobile_money" | "insurance",
+          phoneNumber: payment.phone || '',
+          status: (payment.status === 'confirmed' ? 'completed' : payment.status) as "pending" | "completed" | "failed",
+          timestamp: payment.created_at || '',
+          confirmationCode: payment.transaction_ref,
+          processedBy: payment.cashier_id?.toString() || 'Unknown',
+          notes: payment.notes
+        }));
+        
+        setPayments(transformedPayments);
+        setTotalCount(response.total || transformedPayments.length);
+      } catch (error) {
+        console.error('Error refreshing payments:', error);
+      }
+    };
+    fetchPayments();
+    setIsRecordPaymentModalOpen(false);
+  };
 
   // Fetch payments on component mount and when filters change
   useEffect(() => {
@@ -40,19 +96,63 @@ export default function DashboardPaymentsPage() {
       try {
         setIsLoading(true);
         
-        // TODO: Replace with real API call when available
-        // const response = await fetch(`/api/payments?search=${searchTerm}&status=${statusFilter}&method=${methodFilter}&date_from=${dateFilter}&page=${currentPage}&limit=20`);
-        // const data = await response.json();
-        // setPayments(data.data);
-        // setTotalCount(data.total);
+        // Use real API call
+        const response = await api.payments.getAllPayments({
+          search: searchTerm || undefined,
+          status: statusFilter === "all" ? undefined : statusFilter,
+          page: currentPage,
+          limit: 20
+        });
         
-        // For now, keep empty array until backend API is ready
-        setPayments([]);
-        setTotalCount(0);
+        // Transform backend data to frontend format using enhanced response
+        const transformedPayments = (response.data || []).map((payment: any) => ({
+          id: payment.id.toString(),
+          invoiceId: payment.invoice_id?.toString() || '',
+          invoiceNumber: payment.invoice?.invoice_number || `INV-${payment.invoice_id}`,
+          patientName: payment.patient?.full_name || 'Unknown Patient',
+          amount: payment.amount || 0,
+          method: payment.method as "cash" | "mobile_money" | "insurance",
+          phoneNumber: payment.phone || '',
+          status: (payment.status === 'confirmed' ? 'completed' : payment.status) as "pending" | "completed" | "failed",
+          timestamp: payment.created_at || '',
+          confirmationCode: payment.transaction_ref,
+          processedBy: payment.cashier_id?.toString() || 'Unknown',
+          notes: payment.notes,
+          // Include enhanced data for future use
+          patient: payment.patient,
+          invoice: payment.invoice
+        }));
+        
+        setPayments(transformedPayments);
+        setTotalCount(response.total || transformedPayments.length);
+        
+        // Fetch payment statistics
+        try {
+          const statsResponse = await api.payments.getPaymentSummary();
+          setPaymentStats(statsResponse);
+        } catch (statsError) {
+          console.error('Error fetching payment stats:', statsError);
+          // Set fallback stats based on current payments
+          const completed = transformedPayments.filter(p => p.status === 'completed');
+          const pending = transformedPayments.filter(p => p.status === 'pending');
+          setPaymentStats({
+            total_payments: transformedPayments.length,
+            completed_payments: completed.length,
+            total_revenue: completed.reduce((sum, p) => sum + p.amount, 0),
+            pending_amount: pending.reduce((sum, p) => sum + p.amount, 0),
+            payment_methods_breakdown: {
+              cash: transformedPayments.filter(p => p.method === 'cash').length,
+              mobile_money: transformedPayments.filter(p => p.method === 'mobile_money').length,
+              insurance: transformedPayments.filter(p => p.method === 'insurance').length
+            }
+          });
+        }
         
       } catch (error) {
         console.error('Error fetching payments:', error);
         setPayments([]);
+        setTotalCount(0);
+        setPaymentStats(null);
       } finally {
         setIsLoading(false);
       }
@@ -201,10 +301,96 @@ export default function DashboardPaymentsPage() {
     // TODO: Implement reconciliation
   };
 
-  const totalPayments = payments.length;
-  const completedPayments = payments.filter(p => p.status === "completed").length;
-  const totalRevenue = payments.filter(p => p.status === "completed").reduce((sum, p) => sum + p.amount, 0);
-  const pendingAmount = payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
+  // CRUD Operations with real API calls
+  const handleUpdatePaymentStatus = async (paymentId: string, newStatus: string) => {
+    try {
+      // Real API call to update payment status
+      const response = await api.payments.updatePaymentStatus(parseInt(paymentId), newStatus as 'pending' | 'confirmed' | 'failed');
+      
+      if (response.success) {
+        // Update local state
+        setPayments(prev => prev.map(p => 
+          p.id === paymentId ? { ...p, status: newStatus as "pending" | "completed" | "failed" } : p
+        ));
+        
+        // Refresh statistics
+        try {
+          const statsResponse = await api.payments.getPaymentSummary();
+          setPaymentStats(statsResponse);
+        } catch (statsError) {
+          console.error('Error refreshing stats:', statsError);
+        }
+      } else {
+        throw new Error(response.message || 'Failed to update payment status');
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      alert('Failed to update payment status: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to delete this payment? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      // Real API call to delete payment
+      const response = await api.payments.deletePayment(parseInt(paymentId));
+      
+      if (response.success) {
+        // Update local state
+        setPayments(prev => prev.filter(p => p.id !== paymentId));
+        setSelectedPayments(prev => prev.filter(id => id !== paymentId));
+        
+        // Refresh statistics
+        try {
+          const statsResponse = await api.payments.getPaymentSummary();
+          setPaymentStats(statsResponse);
+        } catch (statsError) {
+          console.error('Error refreshing stats:', statsError);
+        }
+      } else {
+        throw new Error(response.message || 'Failed to delete payment');
+      }
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      alert('Failed to delete payment: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleRetryPayment = async (paymentId: string) => {
+    try {
+      // Real API call to retry payment
+      const response = await api.payments.retryPayment(parseInt(paymentId));
+      
+      if (response.success) {
+        // Update local state
+        setPayments(prev => prev.map(p => 
+          p.id === paymentId ? { ...p, status: 'pending' } : p
+        ));
+        
+        // Refresh statistics
+        try {
+          const statsResponse = await api.payments.getPaymentSummary();
+          setPaymentStats(statsResponse);
+        } catch (statsError) {
+          console.error('Error refreshing stats:', statsError);
+        }
+      } else {
+        throw new Error(response.message || 'Failed to retry payment');
+      }
+    } catch (error) {
+      console.error('Error retrying payment:', error);
+      alert('Failed to retry payment: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  // Calculate statistics from API data or fallback to local calculation
+  const totalPayments = paymentStats?.total_payments || payments.length;
+  const completedPayments = paymentStats?.completed_payments || payments.filter(p => p.status === "completed").length;
+  const totalRevenue = paymentStats?.total_revenue || payments.filter(p => p.status === "completed").reduce((sum, p) => sum + p.amount, 0);
+  const pendingAmount = paymentStats?.pending_amount || payments.filter(p => p.status === "pending").reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="p-6">
@@ -229,7 +415,7 @@ export default function DashboardPaymentsPage() {
               📥 Export
             </button>
             <button
-              onClick={() => console.log("Record payment modal")}
+              onClick={() => setIsRecordPaymentModalOpen(true)}
               className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
             >
               + Record Payment
@@ -394,7 +580,7 @@ export default function DashboardPaymentsPage() {
               <h3 className="text-lg font-semibold text-neutral-900 mb-2">No payments found</h3>
               <p className="text-neutral-600 mb-6">Payment records will appear here once they are processed</p>
               <button
-                onClick={() => console.log("Record payment modal")}
+                onClick={() => setIsRecordPaymentModalOpen(true)}
                 className="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
               >
                 + Record Payment
@@ -456,22 +642,22 @@ export default function DashboardPaymentsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <p className="font-medium text-neutral-900">{payment.id}</p>
+                      <p className="font-bold text-neutral-900 text-sm">{payment.id}</p>
                       {payment.confirmationCode && (
-                        <p className="text-sm text-neutral-500">Code: {payment.confirmationCode}</p>
+                        <p className="text-sm font-medium text-neutral-600">Code: {payment.confirmationCode}</p>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <Link
                       href={`/billing/${payment.invoiceId.replace('INV-', '')}`}
-                      className="font-medium text-primary-600 hover:text-primary-700"
+                      className="font-bold text-primary-600 hover:text-primary-700 text-sm"
                     >
-                      {payment.invoiceId}
+                      {payment.invoiceNumber || payment.invoiceId}
                     </Link>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="font-medium text-neutral-900">{payment.patientName}</p>
+                    <p className="font-bold text-neutral-900 text-sm">{payment.patientName}</p>
                   </td>
                   <td className="px-6 py-4">
                     <div>
@@ -486,19 +672,19 @@ export default function DashboardPaymentsPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-medium text-neutral-900">
+                  <td className="px-6 py-4 text-right font-bold text-neutral-900 text-sm">
                     RWF {payment.amount.toLocaleString()}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payment.status)}`}>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(payment.status)}`}>
                       {getStatusLabel(payment.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-neutral-900">{formatDate(payment.timestamp)}</p>
+                    <p className="font-bold text-neutral-900 text-sm">{formatDate(payment.timestamp)}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-neutral-900">{payment.processedBy}</p>
+                    <p className="font-bold text-neutral-900 text-sm">{payment.processedBy}</p>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
@@ -510,20 +696,26 @@ export default function DashboardPaymentsPage() {
                       </button>
                       {payment.status === "pending" && (
                         <button
-                          onClick={() => console.log("Check status:", payment.id)}
-                          className="text-warning-600 hover:text-warning-700 font-medium text-sm"
+                          onClick={() => handleUpdatePaymentStatus(payment.id, "completed")}
+                          className="text-success-600 hover:text-success-700 font-medium text-sm"
                         >
-                          Check
+                          Confirm
                         </button>
                       )}
                       {payment.status === "failed" && (
                         <button
-                          onClick={() => console.log("Retry payment:", payment.id)}
-                          className="text-error-600 hover:text-error-700 font-medium text-sm"
+                          onClick={() => handleRetryPayment(payment.id)}
+                          className="text-warning-600 hover:text-warning-700 font-medium text-sm"
                         >
                           Retry
                         </button>
                       )}
+                      <button
+                        onClick={() => handleDeletePayment(payment.id)}
+                        className="text-error-600 hover:text-error-700 font-medium text-sm"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -533,6 +725,46 @@ export default function DashboardPaymentsPage() {
         </div>
         )}
       </div>
+
+      {/* Record Payment Modal */}
+      <DashboardRecordPaymentModal
+        isOpen={isRecordPaymentModalOpen}
+        onClose={() => setIsRecordPaymentModalOpen(false)}
+        onSuccess={() => {
+          // Refresh payments list after successful payment
+          const fetchPayments = async () => {
+            try {
+              const response = await api.payments.getAllPayments({
+                search: searchTerm || undefined,
+                status: statusFilter === "all" ? undefined : statusFilter,
+                page: currentPage,
+                limit: 20
+              });
+              
+              const transformedPayments = (response.data || []).map((payment) => ({
+                id: payment.id.toString(),
+                invoiceId: payment.invoice_id?.toString() || '',
+                invoiceNumber: `INV-${payment.invoice_id}`,
+                patientName: 'Unknown Patient', // This will be updated when we fetch invoice details
+                amount: payment.amount || 0,
+                method: payment.method as "cash" | "mobile_money" | "insurance",
+                phoneNumber: payment.phone || '',
+                status: (payment.status === 'confirmed' ? 'completed' : payment.status) as "pending" | "completed" | "failed",
+                timestamp: payment.created_at || '',
+                confirmationCode: payment.transaction_ref,
+                processedBy: payment.cashier_id?.toString() || 'Unknown',
+                notes: payment.notes
+              }));
+              
+              setPayments(transformedPayments);
+              setTotalCount(response.total || transformedPayments.length);
+            } catch (error) {
+              console.error('Error refreshing payments:', error);
+            }
+          };
+          fetchPayments();
+        }}
+      />
     </div>
   );
 }
