@@ -26,7 +26,8 @@ import {
   Patient,
   CreatePatientRequest,
   PatientVisit,
-  UpcomingPayment
+  UpcomingPayment,
+  Visit
 } from '@/lib/types';
 
 // API Configuration
@@ -154,6 +155,122 @@ export const authApi = {
    */
   async getCurrentUser(): Promise<User> {
     return apiRequest<User>('/auth/me');
+  },
+};
+
+// ==================== VISIT MANAGEMENT APIS ====================
+
+export const visitsApi = {
+  /**
+   * GET /api/visits
+   * Get visits with filtering capabilities
+   */
+  async getVisits(params?: {
+    patient_id?: number;
+    status?: 'active' | 'completed' | 'cancelled';
+    visit_type?: 'consultation' | 'follow_up' | 'emergency' | 'general';
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    success: boolean;
+    data: Visit[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.append(key, value.toString());
+      });
+    }
+    const query = searchParams.toString();
+    return apiRequest(`/visits${query ? `?${query}` : ''}`);
+  },
+
+  /**
+   * POST /api/visits
+   * Create a new visit for a patient
+   */
+  async createVisit(visitData: {
+    patient_id: number;
+    visit_type: 'consultation' | 'follow_up' | 'emergency' | 'general';
+    status?: 'active' | 'completed' | 'cancelled';
+    notes?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data: Visit;
+  }> {
+    return apiRequest('/visits', {
+      method: 'POST',
+      body: JSON.stringify(visitData),
+    });
+  },
+
+  /**
+   * GET /api/visits/{id}
+   * Get visit details by ID
+   */
+  async getVisitDetails(visitId: number): Promise<{
+    success: boolean;
+    data: Visit & {
+      patient: {
+        id: number;
+        full_name: string;
+        first_name: string;
+        last_name: string;
+        phone?: string;
+        email?: string;
+      };
+      invoices: Array<{
+        id: number;
+        invoice_number: string;
+        status: string;
+        total_amount: number;
+        created_at: string;
+      }>;
+    };
+  }> {
+    return apiRequest(`/visits/${visitId}`);
+  },
+
+  /**
+   * PUT /api/visits/{id}/status
+   * Update visit status
+   */
+  async updateVisitStatus(visitId: number, status: 'active' | 'completed' | 'cancelled'): Promise<{
+    success: boolean;
+    message: string;
+    data: Visit;
+  }> {
+    return apiRequest(`/visits/${visitId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  /**
+   * GET /api/visits/statistics
+   * Get visit statistics
+   */
+  async getVisitStatistics(): Promise<{
+    success: boolean;
+    data: {
+      total_visits: number;
+      active_visits: number;
+      completed_visits: number;
+      cancelled_visits: number;
+      visit_types: {
+        consultation: number;
+        follow_up: number;
+        emergency: number;
+        general: number;
+      };
+      today_visits: number;
+    };
+  }> {
+    return apiRequest('/visits/statistics');
   },
 };
 
@@ -808,7 +925,7 @@ export const api = {
   patients: patientApi,
   invoices: invoiceApi,
   payments: paymentApi,
-  visits: visitApi,
+  visits: visitsApi,
   facilities: facilityApi,
   users: userApi,
   dashboard: dashboardApi,

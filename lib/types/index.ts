@@ -196,7 +196,6 @@ export interface CreatePatientRequest {
 export interface PatientVisit {
   id: number;
   patient_id: number;
-  visit_date: string;
   visit_type: string;
   status: string;
   invoice_id?: number;
@@ -205,6 +204,32 @@ export interface PatientVisit {
   paid_amount?: number;
 }
 
+// Visit Management Types
+export interface Visit {
+  id: number;
+  patient_id: number;
+  facility_id: number;
+  visit_type: 'consultation' | 'follow_up' | 'emergency' | 'general';
+  status: 'active' | 'completed' | 'cancelled';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  patient?: {
+    id: number;
+    full_name: string;
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    email?: string;
+  };
+  invoices?: Array<{
+    id: number;
+    invoice_number: string;
+    status: string;
+    total_amount: number;
+    created_at: string;
+  }>;
+}
 
 // Invoice Types
 export interface BackendLineItem {

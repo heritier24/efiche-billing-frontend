@@ -69,7 +69,7 @@ export default function NewInvoiceModal({ isOpen, onClose, onSubmit, patients }:
       setIsLoadingVisits(true);
       console.log('Fetching visits for patient:', patientId);
       try {
-        const response = await api.visits.listVisits({
+        const response = await api.visits.getVisits({
           patient_id: parseInt(patientId),
           status: 'active',
           limit: 50
@@ -168,17 +168,23 @@ export default function NewInvoiceModal({ isOpen, onClose, onSubmit, patients }:
       
       if (formData.visitId.startsWith('new-')) {
         // Create a new visit first
-        const visitType = formData.visitId.replace('new-', '');
+        let visitType = formData.visitId.replace('new-', '');
+        
+        // Map frontend visit types to backend format
+        if (visitType === 'followup') {
+          visitType = 'follow_up';
+        }
+        
         console.log(`Creating new ${visitType} visit for patient ${formData.patientId}`);
         
         try {
           const newVisitResponse = await api.visits.createVisit({
             patient_id: parseInt(formData.patientId),
-            visit_type: visitType,
+            visit_type: visitType as 'consultation' | 'follow_up' | 'emergency' | 'general',
             status: 'active'
           });
           
-          finalVisitId = newVisitResponse.id.toString();
+          finalVisitId = newVisitResponse.data.id.toString();
           console.log('New visit created with ID:', finalVisitId);
         } catch (visitError) {
           console.error('Error creating new visit:', visitError);
@@ -249,11 +255,6 @@ export default function NewInvoiceModal({ isOpen, onClose, onSubmit, patients }:
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Select Patient Visit *
               </label>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                <p className="text-sm text-blue-800">
-                  <strong>What is a visit?</strong> A visit represents a specific appointment or consultation session for this patient.
-                </p>
-              </div>
               {isLoadingVisits ? (
                 <div className="w-full px-4 py-3 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-500">
                   Loading patient visits...

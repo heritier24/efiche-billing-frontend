@@ -717,7 +717,8 @@ export default function DashboardInvoicesPage() {
                       >
                         View
                       </Link>
-                      <button
+                      {/* Process Payment button temporarily hidden */}
+                      {/* <button
                         onClick={() => {
                           setSelectedInvoice(invoice);
                           setIsPaymentModalOpen(true);
@@ -725,7 +726,7 @@ export default function DashboardInvoicesPage() {
                         className="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1 rounded text-sm font-medium"
                       >
                         Process Payment
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>
