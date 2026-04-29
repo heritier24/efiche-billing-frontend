@@ -7,6 +7,7 @@ import LineItemsList from "@/components/billing/LineItemsList";
 import PaymentForm from "@/components/billing/EnhancedPaymentForm";
 import LoadingSkeleton from "@/components/billing/LoadingSkeleton";
 import EmptyState from "@/components/billing/EmptyState";
+import PaymentStatusIndicator from "@/components/billing/PaymentStatusIndicator";
 import { Invoice, Insurance, PaymentFormData, Payment, PaymentRequest } from "@/lib/types";
 import { api } from "@/lib/api/backend";
 import { BackendInvoice, BackendInsurance, BackendPayment } from "@/lib/types";
@@ -50,14 +51,20 @@ export default function BillingPage() {
         setState((prev) => ({ ...prev, isLoading: true, errorMessage: null }));
 
         const [invoiceData, insurancesData] = await Promise.all([
-          api.invoices.getInvoiceByVisit(visitId),
-          api.facilities.getInsurances(1), // Default facility ID - should be dynamic
+          api.invoices.getInvoiceByVisit(visitId).catch(err => {
+            console.error('Failed to fetch invoice:', err);
+            return null;
+          }),
+          api.facilities.getInsurances(1).catch(err => {
+            console.error('Failed to fetch insurances:', err);
+            return { data: [] };
+          }),
         ]);
 
         setState((prev) => ({
           ...prev,
           invoice: invoiceData,
-          insurances: insurancesData.data || [],
+          insurances: insurancesData?.data || [],
           isLoading: false,
         }));
       } catch (error) {
@@ -96,7 +103,7 @@ export default function BillingPage() {
           setState((prev) => ({
             ...prev,
             isWaitingForConfirmation: false,
-            successMessage: `Payment confirmed! Transaction ref: ${result.transaction_ref}`,
+            successMessage: "Payment successful! Transaction completed.",
           }));
 
           // Refresh invoice data
@@ -110,6 +117,14 @@ export default function BillingPage() {
           setTimeout(() => {
             setState((prev) => ({ ...prev, successMessage: null }));
           }, 5000);
+        } else if (result.status === "failed") {
+          // Payment failed
+          clearPollingInterval();
+          setState((prev) => ({
+            ...prev,
+            isWaitingForConfirmation: false,
+            errorMessage: "Payment failed. Please try again or contact support.",
+          }));
         } else if (pollingCountRef.current >= MAX_POLLING_ATTEMPTS) {
           // Max attempts reached
           clearPollingInterval();
@@ -175,10 +190,9 @@ export default function BillingPage() {
           // Start polling for confirmation
           setState((prev) => ({
             ...prev,
-            isProcessingPayment: false,
             isWaitingForConfirmation: true,
             currentPaymentId: payment.data?.id,
-            successMessage: "Payment initiated. Waiting for provider confirmation...",
+            successMessage: "Waiting for mobile money confirmation...",
           }));
         } else {
           // Immediate confirmation
@@ -280,14 +294,36 @@ export default function BillingPage() {
         <InvoiceSummary invoice={state.invoice} />
 
         {/* Line Items */}
-        <LineItemsList items={state.invoice.line_items || []} />
+        <LineItemsList items={state.invoice?.line_items || []} />
+
+        {/* Payment Status Messages */}
+        {state.isWaitingForConfirmation && (
+          <PaymentStatusIndicator 
+            status="pending" 
+            message="Waiting for mobile money confirmation..."
+          />
+        )}
+        
+        {state.successMessage && !state.isWaitingForConfirmation && (
+          <PaymentStatusIndicator 
+            status="confirmed" 
+            message={state.successMessage}
+          />
+        )}
+        
+        {state.errorMessage && !state.isWaitingForConfirmation && (
+          <PaymentStatusIndicator 
+            status="failed" 
+            message={state.errorMessage}
+          />
+        )}
 
         {/* Payment Form */}
         <PaymentForm
           invoice={state.invoice}
-          insurances={state.insurances}
+          insurances={state.insurances || []}
           onSubmit={handlePaymentSubmit}
-          isLoading={state.isProcessingPayment}
+          isLoading={state.isProcessingPayment || state.isWaitingForConfirmation}
           isWaitingForConfirmation={state.isWaitingForConfirmation}
           successMessage={state.successMessage || undefined}
           errorMessage={state.errorMessage || undefined}

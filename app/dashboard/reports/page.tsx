@@ -32,6 +32,8 @@ export default function ReportsPage() {
     to: new Date().toISOString().split('T')[0]
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [reportType, setReportType] = useState("overview");
 
   useEffect(() => {
     fetchReportsData();
@@ -294,58 +296,55 @@ export default function ReportsPage() {
                 })}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Patient Metrics */}
-        <div className="bg-white rounded-lg border neutral-200 p-6">
-            <h3 className="text-lg font-semibold text-neutral-900 mb-4">Patient Metrics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-neutral-600">Total Patients</p>
-                    <p className="text-2xl font-bold text-neutral-900 mt-1">{reportSummary?.totalInvoices || 0}</p>
-                  </div>
-                  <div className="text-3xl">👥</div>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-neutral-600">Active Patients</p>
-                    <p className="text-2xl font-bold text-success-600 mt-1">{reportSummary?.totalPayments || 0}</p>
-                </div>
-                <div className="text-3xl">✅</div>
-              </div>
-            </div>
-            </div>
+            
+            {/* Patient Metrics - Second Column */}
             <div className="bg-white rounded-lg border border-neutral-200 p-6">
-              <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">Patient Metrics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-neutral-600">New Patients</p>
-                  <p className="text-2xl font-bold text-primary-600 mt-1">{reportSummary?.averagePaymentAmount || 0}</p>
-                </div>
-                <div className="text-3xl">🆕</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-neutral-600 mb-2">Patient Growth Rate</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-neutral-200 rounded-full h-3">
-                    <div className="bg-success-500 h-3 rounded-full" style={{ width: "68%" }}></div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-neutral-600">Total Patients</p>
+                      <p className="text-2xl font-bold text-neutral-900 mt-1">{reportSummary?.totalInvoices || 0}</p>
+                    </div>
+                    <div className="text-3xl">👥</div>
                   </div>
-                  <span className="text-sm font-bold text-success-600">+68%</span>
                 </div>
-              </div>
-              <div>
-                <p className="text-sm text-neutral-600 mb-2">Patient Retention</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-neutral-200 rounded-full h-3">
-                    <div className="bg-primary-500 h-3 rounded-full" style={{ width: "85%" }}></div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-neutral-600">Active Patients</p>
+                      <p className="text-2xl font-bold text-success-600 mt-1">{reportSummary?.totalPayments || 0}</p>
+                    </div>
+                    <div className="text-3xl">✅</div>
                   </div>
-                  <span className="text-sm font-bold text-primary-600">85%</span>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-neutral-600">New Patients</p>
+                      <p className="text-2xl font-bold text-primary-600 mt-1">{reportSummary?.averagePaymentAmount || 0}</p>
+                    </div>
+                    <div className="text-3xl">🆕</div>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600 mb-2">Patient Growth Rate</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-neutral-200 rounded-full h-3">
+                      <div className="bg-success-500 h-3 rounded-full" style={{ width: "68%" }}></div>
+                    </div>
+                    <span className="text-sm font-bold text-success-600">+68%</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-600 mb-2">Patient Retention</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-neutral-200 rounded-full h-3">
+                      <div className="bg-primary-500 h-3 rounded-full" style={{ width: "85%" }}></div>
+                    </div>
+                    <span className="text-sm font-bold text-primary-600">85%</span>
+                  </div>
                 </div>
               </div>
             </div>

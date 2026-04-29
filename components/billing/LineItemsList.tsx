@@ -11,10 +11,14 @@ interface LineItemsListProps {
 }
 
 export default function LineItemsList({ items }: LineItemsListProps) {
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-6">
-        <p className="text-center text-neutral-500">No line items found</p>
+        <div className="text-center">
+          <div className="text-3xl mb-2">📋</div>
+          <p className="text-neutral-500">No line items available</p>
+          <p className="text-sm text-neutral-400 mt-1">Invoice details may not be loaded yet</p>
+        </div>
       </div>
     );
   }
@@ -62,7 +66,7 @@ export default function LineItemsList({ items }: LineItemsListProps) {
                   RWF {item.unit_price.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-right font-semibold text-primary-600">
-                  RWF {(item.unit_price * item.quantity).toLocaleString()}
+                  RWF {item.total_price?.toLocaleString() || (item.unit_price * item.quantity).toLocaleString()}
                 </td>
               </tr>
             ))}
@@ -86,7 +90,7 @@ export default function LineItemsList({ items }: LineItemsListProps) {
               <div className="flex justify-between font-semibold">
                 <span className="text-neutral-900">Total:</span>
                 <span className="text-primary-600">
-                  RWF {(item.unit_price * item.quantity).toLocaleString()}
+                  RWF {item.total_price?.toLocaleString() || (item.unit_price * item.quantity).toLocaleString()}
                 </span>
               </div>
             </div>
